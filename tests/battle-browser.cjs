@@ -21,7 +21,7 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
       await new Promise(r=>setTimeout(r,mode==='slow'?250:10));
       if(mode==='error')return route.fulfill({status:503,json:{}});
       const model=core.models.find(m=>m.id===selected);
-      return route.fulfill({json:{model:model.api,answers:{判定:{noul:selected==='gemma-e2b'?.2:.8}}}});
+      return route.fulfill({json:{model:model.api,answers:{判定:{noul:selected==='gemma-e2b'?.2:selected==='qwen-2b'?.5:.8}}}});
     }
     return route.fulfill({status:404});
   });
@@ -40,6 +40,10 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
   const downloaded=page.waitForEvent('download');await page.locator('#export').click();
   const record=JSON.parse(fs.readFileSync(await (await downloaded).path(),'utf8'));
   assert.equal(record.run.status,'完了');assert(core.complete(record.run));
+  assert.equal(await page.locator('thead th').count(),5);
+  assert.equal(await page.locator('.probability-track').count(),30);
+  const displayed=await page.locator('#rows tr').evaluateAll(nodes=>nodes.map(tr=>[...tr.querySelectorAll('.answer-box')].map(box=>({fast:box.classList.contains('fastest'),width:box.querySelector('.probability-fill')?.style.width,green:box.querySelector('.probability')?.classList.contains('yes')}))));
+  displayed.forEach((row,i)=>{const times=core.models.map(m=>record.run.results[m.id][i].ms);row.forEach((box,j)=>{const item=record.run.results[core.models[j].id][i];assert.equal(box.fast,item.ms===Math.min(...times));if(j<3){assert(Math.abs(parseFloat(box.width)-item.probability*100)<.001);assert.equal(box.green,item.probability>=.5);}else assert.equal(box.width,undefined);});});
   await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.png`),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}-mobile.png`),fullPage:true});
   await page.reload();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));

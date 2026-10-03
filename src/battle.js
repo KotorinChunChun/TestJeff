@@ -15,7 +15,7 @@ function element(tag,text,cls){const node=document.createElement(tag);if(text!==
 function resetResults(){run=null;render();}
 function createRows(values){
   rows.length=0;$('rows').replaceChildren();
-  values.forEach((word,i)=>{const tr=element('tr'),td=element('td'),input=element('input');input.value=word;input.maxLength=80;input.setAttribute('list','nouns');input.setAttribute('aria-label',`候補${i+1}`);input.oninput=resetResults;td.append(input);tr.append(td);const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});const fastest=element('td','—');tr.append(fastest);rows.push({tr,input,cells,fastest,index:i});$('rows').append(tr);});resetResults();
+  values.forEach((word,i)=>{const tr=element('tr'),td=element('td'),input=element('input');input.value=word;input.maxLength=80;input.setAttribute('list','nouns');input.setAttribute('aria-label',`候補${i+1}`);input.oninput=resetResults;td.append(input);tr.append(td);const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});rows.push({tr,input,cells,index:i});$('rows').append(tr);});resetResults();
 }
 function render(){
   const finished=run&&BattleCore.complete(run),comparison=finished?BattleCore.compare(run):null;
@@ -44,9 +44,21 @@ function render(){
     row.difference=full&&!values.every(x=>BattleCore.positive(x)===BattleCore.positive(values[0]));
     row.tr.classList.toggle('mismatch',row.difference);
     values.forEach((item,j)=>{const cell=row.cells[j];cell.replaceChildren();if(!item){cell.textContent='未評価';return;}
-      cell.append(element('div',`「${run.candidates[row.index]}」は「${run.target}」${BattleCore.positive(item)?'です':'ではありません'}`,`result ${BattleCore.positive(item)?'yes':'no'}`),element('div',`${typeof item.probability==='number'?(item.probability*100).toFixed(1)+'%・':''}${item.ms.toFixed(1)} ms`,item.ms===fastest?'sub fast':'sub'));
+      const isFastest=full&&item.ms===fastest;
+      const box=element('div',undefined,isFastest?'answer-box fastest':'answer-box');
+      if(isFastest)box.title='この候補で最速';
+      const tone=BattleCore.positive(item)?'yes':'no';
+      box.append(element('div',`「${run.candidates[row.index]}」は「${run.target}」${BattleCore.positive(item)?'です':'ではありません'}`,`result ${tone}`));
+      const detail=element('div',undefined,'answer-detail');
+      if(typeof item.probability==='number'){
+        const probability=element('div',undefined,`probability ${tone}`);
+        const track=element('span',undefined,'probability-track'),fill=element('span',undefined,'probability-fill');
+        fill.style.width=`${item.probability*100}%`;track.append(fill);track.setAttribute('aria-hidden','true');
+        probability.append(element('span',`${(item.probability*100).toFixed(1)}%`,'probability-value'),track);detail.append(probability);
+      }
+      detail.append(element('span',`${item.ms.toFixed(1)} ms`,'response-time'));
+      box.append(detail);cell.append(box);
     });
-    row.fastest.textContent=full?models.filter((m,j)=>values[j].ms===fastest).map(m=>m.name).join(' / '):'—';
   }
   sortRows();
 }
