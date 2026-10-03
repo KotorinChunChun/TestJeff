@@ -9,3 +9,4 @@ dev/testing/output/
 .env
 .env.*
 release/
+node_modules/

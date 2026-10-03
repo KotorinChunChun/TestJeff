@@ -1,0 +1,10 @@
+{
+  "name": "testjeff-browser-tests",
+  "private": true,
+  "scripts": {
+    "test": "node tests/playground.test.cjs && node tests/nouns.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

@@ -64,7 +64,7 @@ def serve(name: str, port: int, device: str) -> None:
         os.environ.pop(key, None)
     from jeff import server
     from fastapi import Request
-    from fastapi.responses import HTMLResponse, JSONResponse
+    from fastapi.responses import HTMLResponse, JSONResponse, Response
     import uvicorn
 
     original = server.distributions
@@ -86,6 +86,13 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/playground.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/examples':
             return JSONResponse(json.loads((ROOT / 'tests/requests.json').read_text(encoding='utf-8')))
+        if request.method == 'GET' and request.url.path in ('/nouns', '/nouns/'):
+            return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path == '/testjeff/nouns':
+            return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
+        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js'):
+            return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
+                            media_type='text/javascript')
         if request.url.path == '/v1/systemone' and request.method == 'POST':
             body = bytearray()
             async for chunk in request.stream():
