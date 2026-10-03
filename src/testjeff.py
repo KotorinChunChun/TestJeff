@@ -209,6 +209,15 @@ def verify(names: list[str], port: int, device: str) -> bool:
                     except subprocess.TimeoutExpired:
                         process.kill()
                         process.wait()
+                # taskkill完了直後はWindowsのソケット解放が遅れることがある。
+                for _ in range(100):
+                    try:
+                        free_port(port)
+                        break
+                    except RuntimeError:
+                        time.sleep(0.1)
+                else:
+                    raise RuntimeError('終了後もポートが解放されませんでした。')
             results.append(result)
             (OUTPUT / f'{name}.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
             print(json.dumps(result, ensure_ascii=False), flush=True)
