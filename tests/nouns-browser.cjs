@@ -40,7 +40,7 @@ fs.mkdirSync(output, {recursive:true});
     await page.goto(base+'/nouns');
     await page.locator('#random:not([disabled])').waitFor();
     assert.equal(await page.locator('#rows tr').count(),10);
-    assert.equal(await page.locator('#word-count').textContent(),'1,000語');
+    assert.equal(await page.locator('#noun-list option').count(),1000);
     if (live) {
       await page.getByRole('button',{name:'評価する',exact:true}).click();
       await page.waitForFunction(() => document.getElementById('progress').textContent === '10 / 10件完了', null, {timeout:120000});

@@ -61,7 +61,7 @@ function clearResults() {
     row.feedbackStatus.textContent = '';
     row.feedbackButtons.forEach(button => {button.disabled = true; button.setAttribute('aria-pressed', 'false');});
   }
-  $('progress').textContent = '10件'; $('total').textContent = '';
+  $('progress').textContent = '10件';
 }
 function setBusy(value) {
   running = value;
@@ -143,7 +143,7 @@ async function evaluate(accumulate = false) {
   }
   catch (error) {showError(error.message); return;}
   clearResults(); setBusy(true); controller = new AbortController();
-  const started = performance.now(); let completed = 0, failed = 0;
+  let completed = 0, failed = 0;
   try {
     for (const [index, request] of requests.entries()) {
       if (controller.signal.aborted) break;
@@ -167,7 +167,7 @@ async function evaluate(accumulate = false) {
         row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:request.state.対象,
           model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
         row.timing.textContent = `${elapsed.toFixed(1)} ms`; timings.push(elapsed); probabilities.push(probability);
-        $('model').textContent = data.model || 'Jeff'; completed++;
+        completed++;
       } catch (error) {
         if (controller.signal.aborted) {row.answer.textContent = '中止'; break;}
         row.answer.textContent = '失敗'; failed++; showError(error instanceof TypeError ? 'サーバーへ接続できません。' : error.message);
@@ -176,7 +176,6 @@ async function evaluate(accumulate = false) {
       }
     }
     $('progress').textContent = controller.signal.aborted ? `${completed} / 10件で中止` : failed ? `${completed} / 10件完了・エラー` : `${completed} / 10件完了`;
-    $('total').textContent = `今回 ${((performance.now() - started) / 1000).toFixed(2)}秒${timings.length ? `・平均 ${(timings.reduce((a,b)=>a+b,0)/timings.length).toFixed(1)} ms/件` : ''}`;
     if (accumulate && completed === 10 && !failed && !controller.signal.aborted) {
       statistics = {...statistics, ...loadStatistics()};
       statistics[runModel] = NounCore.accumulate(statistics[runModel], timings, probabilities);
@@ -220,11 +219,10 @@ $('model-select').onchange = async () => {
     if (response.status === 401) {$('auth').classList.remove('hidden'); throw new Error('APIキーを入力してください。');}
     if (!response.ok) throw new Error(response.status === 409 ? '別の評価が実行中です。終了後に選び直してください。' : 'モデルを読み込めません。小さいモデルを選んでください。');
     const status = await response.json(); selectedModel = status.selected; ready = status.ready;
-    $('model').textContent = MODEL_NAMES[selectedModel]; $('progress').textContent = 'モデル切り替え完了';
+    $('progress').textContent = 'モデル切り替え完了';
   } catch (error) {
     showError(error.message); $('progress').textContent = '切り替え失敗';
     try {const state = await (await fetch('/testjeff/status')).json(); selectedModel = state.selected; ready = state.ready;} catch {ready = false;}
-    $('model').textContent = ready ? MODEL_NAMES[selectedModel] : 'モデル未読込';
   } finally {
     $('model-select').value = selectedModel || ''; renderStatistics(); setBusy(false);
   }
@@ -245,7 +243,7 @@ $('model-select').onchange = async () => {
     $('target').value = '動物';
     const options = document.createDocumentFragment();
     for (const word of words) {const option = document.createElement('option'); option.value = word; options.append(option);}
-    $('noun-list').append(options); $('word-count').textContent = `${words.length.toLocaleString('ja-JP')}語`;
+    $('noun-list').append(options);
     const statusResponse = await fetch('/testjeff/status');
     if (!statusResponse.ok) throw new Error('モデルの状態を確認できませんでした。');
     const status = await statusResponse.json(); selectedModel = status.selected; ready = status.ready;
@@ -254,6 +252,6 @@ $('model-select').onchange = async () => {
   } catch (error) {showError(error.message); $('progress').textContent = '読み込み失敗';}
   try {
     const response = await fetch('/health'), health = await response.json();
-    $('model').textContent = health.model || 'Jeff'; $('auth').classList.toggle('hidden', !health.authentication);
-  } catch {$('model').textContent = '未接続';}
+    $('auth').classList.toggle('hidden', !health.authentication);
+  } catch {}
 })();
