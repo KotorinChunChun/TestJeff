@@ -24,4 +24,5 @@
 | 実測 | dev/testing/RESULTS.md |
 | 名詞判定 | src/nouns.html、src/nouns.js、src/nouns-core.js、src/data/nouns.json、tests/nouns.test.cjs、tests/nouns-browser.cjs |
 | フィードバック記録 | src/feedback.py、tests/feedback_test.py、tests/feedback-browser.cjs、dev/history/v0.4.0/v0.4.0-imp.md |
+| 使用量表示 | src/resources.py、tests/resources_test.py、tests/resources-browser.cjs、dev/history/v0.5.0/v0.5.0-imp.md |
 | 配布 | dev/RELEASE_RULE.md |
