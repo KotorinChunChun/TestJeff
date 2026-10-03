@@ -139,11 +139,13 @@ def serve(name: str, port: int, device: str) -> None:
             return JSONResponse(json.loads((ROOT / 'tests/requests.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path in ('/nouns', '/nouns/'):
             return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path in ('/battle', '/battle/'):
+            return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path == '/testjeff/abstract-nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/abstract-nouns.json').read_text(encoding='utf-8')))
-        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js'):
+        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js'):
             return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
                             media_type='text/javascript')
         if request.url.path == '/v1/systemone' and request.method == 'POST':
