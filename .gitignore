@@ -1,0 +1,11 @@
+.venv/
+.cache/
+models/
+__pycache__/
+*.py[cod]
+dev/temp/
+dev/private/
+dev/testing/output/
+.env
+.env.*
+release/

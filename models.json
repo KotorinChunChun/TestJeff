@@ -1,0 +1,5 @@
+{
+  "qwen-0.8b": {"repo": "mstrasser/Jeff-Qwen3.5-0.8B", "revision": "51552f39a943d62e8387c4ea5e17026a1408729f", "minimum_free_gib": 3},
+  "qwen-2b": {"repo": "mstrasser/Jeff-Qwen3.5-2B", "revision": "00448e884cce9e34396d8c72e9a692b41383b1ee", "minimum_free_gib": 6},
+  "gemma-e2b": {"repo": "mstrasser/Jeff-Gemma4-E2B", "revision": "e3de3e99a979f92afd995d4e526c7e3170ae49cf", "minimum_free_gib": 11}
+}
