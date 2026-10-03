@@ -10,3 +10,4 @@ dev/testing/output/
 .env.*
 release/
 node_modules/
+dev/feedback/

@@ -6,7 +6,7 @@
   <title>名詞判定</title>
   <style>
     :root {font-family:system-ui,"Yu Gothic UI",sans-serif;color:#23362c;background:#f4f6f3;color-scheme:light}
-    *{box-sizing:border-box} body{margin:0} main{max-width:1000px;margin:auto;padding:28px 24px 48px}
+    *{box-sizing:border-box} body{margin:0} main{max-width:1320px;margin:auto;padding:28px 24px 48px}
     header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}
     h1{font-size:22px;margin:0;font-weight:650} a{color:#326344;text-underline-offset:4px}
     .card{background:white;border:1px solid #dce3dc;border-radius:16px;overflow:hidden;box-shadow:0 4px 22px #24392d05}
@@ -19,10 +19,11 @@
     .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}button{font:inherit;font-weight:600;border:1px solid #cbd8cd;border-radius:9px;padding:11px 18px;cursor:pointer;background:white;color:#31533d}
     button.primary{background:#306643;color:white;border-color:#306643} button:hover{filter:brightness(.96)}button:disabled{opacity:.5;cursor:default}
     #progress{font-size:13px;color:#637165;margin-left:auto} #error{color:#9b2929;margin:16px 0 0} .hidden{display:none!important}
-    .tablewrap{overflow-x:auto}table{width:100%;min-width:640px;border-collapse:collapse;text-align:left}th{font-size:12px;font-weight:500;color:#66766a;background:#fafcf9;padding:14px 22px;white-space:nowrap}
-    td{padding:12px 22px;border-top:1px solid #edf0eb;font-size:14px}th:first-child,td:first-child{width:60px;white-space:nowrap;padding-right:12px}td:first-child{color:#8b978e}td:nth-child(2){width:33%}td input{width:100%;max-width:230px;font-size:15px}
+    .tablewrap{overflow-x:auto}table{width:100%;min-width:1080px;border-collapse:collapse;text-align:left}th{font-size:12px;font-weight:500;color:#66766a;background:#fafcf9;padding:14px 14px;white-space:nowrap}
+    td{padding:12px 14px;border-top:1px solid #edf0eb;font-size:14px}th:first-child,td:first-child{width:60px;white-space:nowrap;padding-right:12px}td:first-child{color:#8b978e}td:nth-child(2){width:155px;min-width:155px}td input{width:100%;max-width:230px;font-size:15px}
     .probability{display:flex;align-items:center;gap:14px;min-width:180px}.track{height:8px;flex:1;background:#edf2ec;border-radius:10px;overflow:hidden}.fill{height:100%;background:#56956b;width:0;transition:width .2s}
-    .percent{width:62px;text-align:right;font-variant-numeric:tabular-nums}.answer{white-space:nowrap;color:#78867a}.answer.yes{color:#286443;font-weight:600}.answer.no{color:#6d716d}
+    .percent{width:62px;text-align:right;font-variant-numeric:tabular-nums}.answer{min-width:230px;color:#78867a;overflow-wrap:anywhere}.answer.yes{color:#23723d;font-weight:600}.answer.no{color:#b33131;font-weight:600}
+    .feedback{min-width:185px}.feedback-buttons{display:flex;gap:6px}.feedback button{font-size:12px;padding:7px 9px;white-space:nowrap}.feedback button[aria-pressed="true"]{background:#e0eadd;border-color:#52784c}.feedback-status{font-size:11px;color:#66766a;display:block;margin-top:5px}header nav{display:flex;gap:20px;align-items:center}#download-feedback{font-size:12px;padding:8px 12px}
     footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:#758175}.auth{margin-top:16px}#key{font-size:14px;width:260px}
     .model-line{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.model-line label{margin:0}.stats{display:flex;gap:22px;flex-wrap:wrap;padding:18px 28px;background:#f8fbf7;border-bottom:1px solid #dce3dc;font-size:12px;color:#66766a}.stats strong{display:block;font-size:19px;color:#294936;margin-top:4px;font-variant-numeric:tabular-nums}.stats button{margin-left:auto;font-size:12px;padding:7px 10px}.timing{white-space:nowrap;font-variant-numeric:tabular-nums;color:#526857}
     @media(max-width:600px){main{padding:18px 10px}.controls{padding:20px}td,th{padding:12px 10px}.probability{min-width:130px}#target{width:180px}#progress{margin-left:0;width:100%}}
@@ -30,7 +31,7 @@
 </head>
 <body>
 <main>
-  <header><h1>名詞判定</h1><a href="/">サンプル一覧</a></header>
+  <header><h1>名詞判定</h1><nav><button id="download-feedback">記録をダウンロード</button><a href="/">サンプル一覧</a></nav></header>
   <section class="card">
     <div class="controls">
       <div class="model-line"><label for="model-select">モデル</label><select id="model-select" disabled><option value="qwen-0.8b">Qwen 0.8B</option><option value="qwen-2b">Qwen 2B</option><option value="gemma-e2b">Gemma E2B</option></select></div>
@@ -42,7 +43,7 @@
       <p id="error" role="alert" class="hidden"></p>
     </div>
     <div class="stats" aria-live="polite"><div>生成回数<strong id="runs">0回</strong></div><div>累積件数<strong id="count">0件</strong></div><div>平均応答時間<strong id="average-time">—</strong></div><div>平均「はい」確率<strong id="average-probability">—</strong></div><button id="reset" disabled>集計をリセット</button></div>
-    <div class="tablewrap"><table><thead><tr><th>番号</th><th>候補の名詞</th><th>はいの確率</th><th>判定</th><th>応答時間</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="tablewrap"><table><thead><tr><th>順位</th><th>候補の名詞</th><th>はいの確率</th><th>判定結果</th><th>応答時間 ↑</th><th>フィードバック</th></tr></thead><tbody id="rows"></tbody></table></div>
   </section>
   <footer><span id="model">接続中</span><span id="total"></span></footer>
 </main>

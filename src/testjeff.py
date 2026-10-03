@@ -12,6 +12,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from feedback import Feedback, FeedbackStore
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -108,6 +109,20 @@ def serve(name: str, port: int, device: str) -> None:
             server.service.model = None
 
     server.app.router.lifespan_context = local_lifespan
+    feedback_store = FeedbackStore(Path(os.environ.get('TESTJEFF_FEEDBACK_PATH', str(ROOT / 'dev/feedback/ratings.sqlite3'))))
+
+    @server.app.post('/testjeff/feedback', dependencies=[Depends(server.authenticate)])
+    def save_feedback(body: Feedback):
+        try:
+            return feedback_store.save(body, MODELS[body.model]['revision'])
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+        except Exception as error:
+            raise HTTPException(500, 'フィードバックを保存できませんでした。再試行してください。') from error
+
+    @server.app.get('/testjeff/feedback', dependencies=[Depends(server.authenticate)])
+    def download_feedback():
+        return JSONResponse(feedback_store.records(), headers={'Content-Disposition': 'attachment; filename="feedback.json"'})
 
     @server.app.middleware('http')
     async def bound_request(request: Request, call_next):

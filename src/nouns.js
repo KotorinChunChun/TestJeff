@@ -36,6 +36,9 @@ function clearResults() {
     row.percent.textContent = '—'; row.fill.style.width = '0%';
     row.answer.textContent = '未評価'; row.answer.className = 'answer';
     row.timing.textContent = '—';
+    row.elapsed = null; row.result = null; row.pendingFeedback = null; row.rating = null;
+    row.feedbackStatus.textContent = '';
+    row.feedbackButtons.forEach(button => {button.disabled = true; button.setAttribute('aria-pressed', 'false');});
   }
   $('progress').textContent = '10件'; $('total').textContent = '';
 }
@@ -43,7 +46,10 @@ function setBusy(value) {
   running = value;
   for (const id of ['random', 'evaluate', 'target']) $(id).disabled = value || !ready;
   for (const id of ['model-select', 'key', 'reset']) $(id).disabled = value;
-  rows.forEach(row => {row.input.disabled = value;});
+  rows.forEach(row => {
+    row.input.disabled = value;
+    row.feedbackButtons.forEach(button => {button.disabled = value || !row.result || row.saving;});
+  });
   $('cancel').classList.toggle('hidden', !value);
   $('cancel').disabled = false;
 }
@@ -61,16 +67,55 @@ function createRows(candidates) {
     const percent = document.createElement('span'); percent.className = 'percent'; box.append(track, percent); probability.append(box);
     const answer = document.createElement('td'); answer.className = 'answer';
     const timing = document.createElement('td'); timing.className = 'timing';
-    tr.append(number, noun, probability, answer, timing); $('rows').append(tr);
-    rows.push({input, percent, fill, answer, timing});
+    const feedback = document.createElement('td'); feedback.className = 'feedback';
+    const buttons = document.createElement('div'); buttons.className = 'feedback-buttons';
+    const feedbackStatus = document.createElement('span'); feedbackStatus.className = 'feedback-status'; feedbackStatus.setAttribute('role', 'status');
+    const row = {tr, number, input, percent, fill, answer, timing, feedbackStatus, feedbackButtons:[], originalIndex:index, elapsed:null, result:null, saving:false};
+    for (const rating of ['良かった','悪かった']) {
+      const button = document.createElement('button'); button.textContent = rating; button.disabled = true; button.setAttribute('aria-pressed', 'false');
+      button.onclick = () => saveFeedback(row, rating); buttons.append(button); row.feedbackButtons.push(button);
+    }
+    feedback.append(buttons, feedbackStatus);
+    tr.append(number, noun, probability, answer, timing, feedback); $('rows').append(tr);
+    rows.push(row);
   });
   clearResults();
+}
+function sortResults() {
+  const sorted = [...rows].sort((a,b) => (a.elapsed ?? Infinity) - (b.elapsed ?? Infinity) || a.originalIndex - b.originalIndex);
+  sorted.forEach((row,index) => {row.number.textContent = index+1; row.input.setAttribute('aria-label', `候補${index+1}`); $('rows').append(row.tr);});
+}
+async function saveFeedback(row, rating) {
+  if (running || row.saving || !row.result || row.rating === rating) return;
+  const snapshot = row.result;
+  if (!row.pendingFeedback || row.pendingFeedback.rating !== rating) row.pendingFeedback = {...snapshot, rating, event_id:crypto.randomUUID()};
+  const payload = row.pendingFeedback;
+  row.saving = true; row.feedbackButtons.forEach(button => {button.disabled = true;}); row.feedbackStatus.textContent = '保存中';
+  try {
+    const headers = {'Content-Type':'application/json'};
+    if ($('key').value) headers.Authorization = `Bearer ${$('key').value}`;
+    const response = await fetch('/testjeff/feedback', {method:'POST',headers,body:JSON.stringify(payload)});
+    if (!response.ok) {
+      if (response.status === 401) $('auth').classList.remove('hidden');
+      throw new Error('保存できませんでした。再試行してください。');
+    }
+    const stored = await response.json();
+    if (stored.event_id !== payload.event_id || stored.rating !== rating) throw new Error('保存内容を確認できませんでした。再試行してください。');
+    if (row.result === snapshot) {
+      row.rating = rating; row.pendingFeedback = null; row.feedbackStatus.textContent = `${rating}・記録済み`;
+      row.feedbackButtons.forEach(button => button.setAttribute('aria-pressed', String(button.textContent === rating)));
+    }
+  } catch (error) {if (row.result === snapshot) row.feedbackStatus.textContent = error.message;}
+  finally {
+    row.saving = false;
+    row.feedbackButtons.forEach(button => {button.disabled = running || !row.result;});
+  }
 }
 async function evaluate(accumulate = false) {
   if (running || !ready) return;
   showError();
   let requests;
-  const runModel = selectedModel, timings = [], probabilities = [];
+  const runModel = selectedModel, runTarget = $('target').value, runId = crypto.randomUUID(), timings = [], probabilities = [];
   try {
     if (!targets.includes($('target').value)) throw new Error('質問は分類名から選んでください。');
     requests = rows.map(row => ({...NounCore.makeRequest($('target').value, row.input.value), model:MODEL_NAMES[runModel]}));
@@ -95,8 +140,11 @@ async function evaluate(accumulate = false) {
         if (typeof probability !== 'number' || !Number.isFinite(probability) || probability < 0 || probability > 1) throw new Error('確率の応答が不正です。');
         row.percent.textContent = `${(probability * 100).toFixed(1)}%`;
         row.fill.style.width = `${probability * 100}%`;
-        row.answer.textContent = probability >= .5 ? 'はい' : 'いいえ';
+        row.answer.textContent = `「${request.state.対象}」は「${runTarget}」${probability >= .5 ? 'です' : 'ではありません'}`;
         row.answer.className = probability >= .5 ? 'answer yes' : 'answer no';
+        row.elapsed = elapsed;
+        row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:request.state.対象,
+          model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
         row.timing.textContent = `${elapsed.toFixed(1)} ms`; timings.push(elapsed); probabilities.push(probability);
         $('model').textContent = data.model || 'Jeff'; completed++;
       } catch (error) {
@@ -113,7 +161,7 @@ async function evaluate(accumulate = false) {
       statistics[runModel] = NounCore.accumulate(statistics[runModel], timings, probabilities);
       saveStatistics(); renderStatistics();
     }
-  } finally {setBusy(false); controller = null;}
+  } finally {sortResults(); setBusy(false); controller = null;}
 }
 $('random').onclick = async () => {
   if (running || !words.length) return;
@@ -125,6 +173,20 @@ $('evaluate').onclick = () => evaluate(false);
 $('cancel').onclick = () => {controller?.abort(); $('cancel').disabled = true;};
 $('target').addEventListener('input', clearResults);
 $('reset').onclick = () => {delete statistics[selectedModel]; saveStatistics(); renderStatistics();};
+$('download-feedback').onclick = async () => {
+  const button = $('download-feedback'); button.disabled = true;
+  try {
+    const headers = {};
+    if ($('key').value) headers.Authorization = `Bearer ${$('key').value}`;
+    const response = await fetch('/testjeff/feedback', {headers});
+    if (!response.ok) {if(response.status === 401) $('auth').classList.remove('hidden'); throw new Error('記録を取得できませんでした。');}
+    const data = await response.json();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:'application/json;charset=utf-8'}));
+    const link = document.createElement('a'); link.href = url; link.download = '名詞判定フィードバック.json'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+  } catch(error) {showError(error.message);}
+  finally {button.disabled = false;}
+};
 $('model-select').onchange = async () => {
   if (running) return;
   const wanted = $('model-select').value;

@@ -52,7 +52,7 @@ fs.mkdirSync(output, {recursive:true});
     const target = await page.locator('#target').inputValue();
     const candidates = await page.locator('#rows input').evaluateAll(nodes => nodes.map(node => node.value));
     assert.equal(new Set(candidates).size,10);
-    assert.deepEqual(calls.slice(before).map(call => call.state.対象),candidates);
+    assert.deepEqual(calls.slice(before).map(call => call.state.対象).sort(),[...candidates].sort());
     assert(calls.slice(before).every(call => call.questions.判定.instructions.startsWith(`これは${target}ですか？`)));
     assert.equal(await page.locator('.percent').filter({hasText:'%'}).count(),10);
     assert.equal(maxActive,1);
