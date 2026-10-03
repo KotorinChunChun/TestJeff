@@ -41,11 +41,11 @@ fs.mkdirSync(output, {recursive:true});
     assert.equal(await page.locator('#word-count').textContent(),'1,000語');
     if (live) {
       await page.getByRole('button',{name:'評価する',exact:true}).click();
-      await page.waitForFunction(() => document.getElementById('progress').textContent === '10 / 10件完了', {timeout:120000});
+      await page.waitForFunction(() => document.getElementById('progress').textContent === '10 / 10件完了', null, {timeout:120000});
     }
     const before = calls.length;
     await page.getByRole('button',{name:'ランダム生成',exact:true}).click();
-    await page.waitForFunction(() => document.getElementById('progress').textContent === '10 / 10件完了', {timeout:120000});
+    await page.waitForFunction(() => document.getElementById('progress').textContent === '10 / 10件完了', null, {timeout:120000});
     assert.equal(calls.length-before,10);
     const target = await page.locator('#target').inputValue();
     const candidates = await page.locator('#rows input').evaluateAll(nodes => nodes.map(node => node.value));

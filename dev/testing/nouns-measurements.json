@@ -1,0 +1,621 @@
+{
+  "target": "トランプ",
+  "candidates": [
+    "学校",
+    "味噌",
+    "椅子",
+    "羊羹",
+    "生クリーム",
+    "菓子職人",
+    "蝿",
+    "将棋",
+    "金平糖",
+    "スカート"
+  ],
+  "requests": [
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "犬"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "猫"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "馬"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "象"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "イルカ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "りんご"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "椅子"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "自転車"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "鉛筆"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "雨"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "学校"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "味噌"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "椅子"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "羊羹"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "生クリーム"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "菓子職人"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "蝿"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "将棋"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "金平糖"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-latest",
+      "state": {
+        "対象": "スカート"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これはトランプですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "トランプに当てはまる",
+            "false": "トランプではない"
+          }
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.9573780023172573
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.943942971109919
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.780362713629563
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.7493038773536682
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.9618407393461852
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.014676379274115579
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.008301399462638807
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.012375179814279632
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.011690309603729259
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.024408961941068123
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.08163693790545874
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.024408983747226044
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.04262195337018579
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.02581950219378988
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.027309274962210237
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.03054339415920232
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.05026143489709885
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.018410990574178023
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.038159227439789944
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.05605702889008096
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    }
+  ],
+  "maxActive": 1,
+  "errors": []
+}

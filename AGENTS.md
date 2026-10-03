@@ -22,4 +22,5 @@
 | 改造・再現 | docs/DEVELOPERS_GUIDE.md、src/testjeff.py、src/playground.html、models.json |
 | 実装計画 | dev/history/v0.1.0/v0.1.0-imp.md |
 | 実測 | dev/testing/RESULTS.md |
+| 名詞判定 | src/nouns.html、src/nouns.js、src/nouns-core.js、src/data/nouns.json、tests/nouns.test.cjs、tests/nouns-browser.cjs |
 | 配布 | dev/RELEASE_RULE.md |

@@ -13,3 +13,9 @@ GPU試験ではHTTPクライアントとモデルサーバーを別プロセス�
 Jevの実サービスへの接続・完全互換性の比較試験は行っていない。検証対象はJeffが提供するJev形式の `/v1/systemone` と公式スキーマである。
 
 日本語画面はsrc/playground.html。公式MIT版を元に本件用として管理し、上流submoduleは変更しない。`GET /testjeff/examples` でtests/requests.jsonを読み、すべてのプリセットを生成する。`node tests/playground.test.cjs` は画面スクリプトをDOM代替上で実行し、全サンプルの選択・送信内容・ordersの一致を確認する（実ブラウザーの描画試験とは区別する）。
+
+名詞判定はsrc/nouns.html、nouns.js、nouns-core.js。GET /nounsとGET /testjeff/nounsを追加し、既存の/v1/systemoneへ候補ごとにnoulを送信する。辞書はsrc/data/nouns-source.txtとnouns.jsonの一致をテストで保つ。名詞を追加・変更するときは両方を更新する。
+
+Node.jsはブラウザーテスト専用。`npm ci`、`npm test` で辞書と抽選、日本語画面の送信内容を確認できる。`node tests/nouns-browser.cjs` は既存Microsoft Edgeをヘッドレスで起動し、1クリックでの抽選・10件評価・逐次通信・空入力・中止・認証エラーを確認する。追加ブラウザーのダウンロードは不要。Playwrightの依存は本件内node_modulesへ分離する。
+
+実モデルでのブラウザーテストは、サーバー起動後にpwshで `$env:LIVE_URL='http://127.0.0.1:8765'; node tests/nouns-browser.cjs` を実行する。初期例10件とランダム10件、計20件を推論する。JSONとパソコン幅・スマートフォン幅のスクリーンショットはdev/testing/outputへ保存する。
