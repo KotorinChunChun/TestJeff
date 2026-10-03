@@ -1,0 +1,6 @@
+[
+  {"name":"英語の画面選択", "expected_choice":"1", "request":{"model":"jeff-latest","state":{"voice_transcript":"Open the inbox","current_screen":"Home"},"questions":{"intent":{"type":"choice","instructions":"Which screen does the user want to open?","criteria":{"1":"Inbox","2":"Settings","3":"Calendar"}}}}},
+  {"name":"日本語の画面選択", "expected_choice":"2", "request":{"model":"jeff-latest","state":{"発話":"設定画面を開いてください","現在の画面":"ホーム"},"questions":{"intent":{"type":"choice","instructions":"ユーザーが開きたい画面はどれですか。","criteria":{"1":"受信トレイ","2":"設定","3":"カレンダー"}}}}},
+  {"name":"真偽・スコア・選択の複数質問", "request":{"model":"jeff-latest","state":"The customer says: Thank you, the problem is completely solved and I am very happy.","questions":{"resolved":{"type":"noul","instructions":"Is the problem solved?"},"sentiment":{"type":"score","instructions":"How positive is the customer's message?","criteria":["Very negative","Neutral","Very positive"]},"intent":{"type":"choice","instructions":"What is the customer doing?","criteria":{"1":"Thanking support","2":"Reporting a new failure"}}}}},
+  {"name":"選択肢順序反転平均", "expected_choice":"1", "request":{"model":"jeff-latest","orders":2,"state":"Please open my inbox.","questions":{"intent":{"type":"choice","instructions":"Choose the requested screen.","criteria":{"1":"Inbox","2":"Calendar"}}}}}
+]
