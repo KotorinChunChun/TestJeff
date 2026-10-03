@@ -25,6 +25,7 @@
     .feedback{min-width:165px}.feedback-buttons{display:flex;gap:6px}.feedback button{font-size:12px;padding:7px 9px;white-space:nowrap}.feedback button[aria-pressed="true"]{background:#e0eadd;border-color:#52784c}.feedback-status:empty{display:none}.feedback-status{font-size:11px;color:#66766a;display:block;margin-top:2px}header nav{display:flex;gap:20px;align-items:center}#download-feedback{font-size:12px;padding:8px 12px}
     .auth{flex-basis:100%;margin-top:0}#error{flex-basis:100%;margin:0}#key{font-size:14px;width:260px}
     .model-line{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin:0}.model-line label{margin:0}.stats{display:flex;gap:22px;flex-wrap:wrap;padding:8px 14px;background:#f8fbf7;border-bottom:1px solid #dce3dc;font-size:12px;color:#66766a}.stats strong{display:block;font-size:17px;color:#294936;margin-top:2px;font-variant-numeric:tabular-nums}.stats button{margin-left:auto;font-size:12px;padding:7px 10px}.timing{white-space:nowrap;font-variant-numeric:tabular-nums;color:#526857}
+    .sort-control{display:flex;align-items:center;gap:8px;margin-left:auto}.sort-control label{margin:0}.stats .sort-control+button{margin-left:0}
     @media(max-width:600px){main{padding:8px}header{gap:8px;flex-wrap:wrap}header nav{gap:12px}.controls{padding:10px}.actions{flex-basis:100%}.stats{gap:12px;padding:8px 10px}#progress{margin-left:0}}
   </style>
 </head>
@@ -42,8 +43,8 @@
       <div id="auth" class="auth hidden"><label for="key">APIキー</label><input id="key" type="password" autocomplete="off"></div>
       <p id="error" role="alert" class="hidden"></p>
     </div>
-    <div class="stats" aria-live="polite"><div>生成回数<strong id="runs">0回</strong></div><div>累積件数<strong id="count">0件</strong></div><div>平均応答時間<strong id="average-time">—</strong></div><div>平均「はい」確率<strong id="average-probability">—</strong></div><button id="reset" disabled>集計をリセット</button></div>
-    <div class="tablewrap"><table><thead><tr><th>順位</th><th>候補の名詞</th><th>はいの確率</th><th>判定結果</th><th>応答時間 ↑</th><th>フィードバック</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="stats" aria-live="polite"><div>生成回数<strong id="runs">0回</strong></div><div>累積件数<strong id="count">0件</strong></div><div>平均応答時間<strong id="average-time">—</strong></div><div>平均「はい」確率<strong id="average-probability">—</strong></div><div class="sort-control"><label for="sort-order">並び順</label><select id="sort-order"><option value="name">名前順</option><option value="time" selected>応答時間順</option><option value="result">判定結果順</option></select></div><button id="reset" disabled>集計をリセット</button></div>
+    <div class="tablewrap"><table><thead><tr><th>順位</th><th>候補の名詞</th><th>はいの確率</th><th>判定結果</th><th>応答時間</th><th>フィードバック</th></tr></thead><tbody id="rows"></tbody></table></div>
   </section>
 </main>
 <script src="/assets/nouns-core.js"></script><script src="/assets/nouns.js"></script>

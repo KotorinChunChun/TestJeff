@@ -66,7 +66,7 @@ function clearResults() {
 function setBusy(value) {
   running = value;
   for (const id of ['random', 'evaluate', 'target']) $(id).disabled = value || !ready;
-  for (const id of ['model-select', 'key', 'reset']) $(id).disabled = value;
+  for (const id of ['model-select', 'key', 'reset', 'sort-order']) $(id).disabled = value;
   rows.forEach(row => {
     row.input.disabled = value;
     row.feedbackButtons.forEach(button => {button.disabled = value || !row.result || row.saving;});
@@ -101,11 +101,20 @@ function createRows(candidates) {
     rows.push(row);
   });
   clearResults();
+  sortResults();
 }
 function sortResults() {
-  const sorted = [...rows].sort((a,b) => (a.elapsed ?? Infinity) - (b.elapsed ?? Infinity) || a.originalIndex - b.originalIndex);
+  const mode = $('sort-order').value;
+  const nameOrder = new Intl.Collator('ja', {numeric:true});
+  const resultRank = row => row.result ? (row.result.probability >= .5 ? 0 : 1) : 2;
+  const sorted = [...rows].sort((a,b) => {
+    const difference = mode === 'name' ? nameOrder.compare(a.input.value.trim(), b.input.value.trim()) :
+      mode === 'result' ? resultRank(a) - resultRank(b) : (a.elapsed ?? Infinity) - (b.elapsed ?? Infinity);
+    return difference || a.originalIndex - b.originalIndex;
+  });
   sorted.forEach((row,index) => {row.number.textContent = index+1; row.input.setAttribute('aria-label', `候補${index+1}`); $('rows').append(row.tr);});
 }
+$('sort-order').onchange = sortResults;
 async function saveFeedback(row, rating) {
   if (running || row.saving || !row.result || row.rating === rating) return;
   const snapshot = row.result;
