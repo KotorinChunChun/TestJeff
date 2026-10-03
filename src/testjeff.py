@@ -63,8 +63,10 @@ def serve(name: str, port: int, device: str) -> None:
     for key in ('JEFF_ADAPTERS', 'JEFF_ADAPTER_MODE', 'JEFF_LORA_PRECISION'):
         os.environ.pop(key, None)
     from jeff import server
-    from fastapi import Request
+    from fastapi import Request, Depends, HTTPException
     from fastapi.responses import HTMLResponse, JSONResponse, Response
+    from contextlib import asynccontextmanager
+    from starlette.concurrency import run_in_threadpool
     import uvicorn
 
     original = server.distributions
@@ -80,6 +82,33 @@ def serve(name: str, port: int, device: str) -> None:
 
     server.distributions = limited_distributions
 
+    def install_model(key):
+        from datetime import datetime, timezone
+        from jeff.models import load_decision_model
+        folder = checkpoint(key)
+        config_path = folder / 'decision_config.json'
+        config = json.loads(config_path.read_text(encoding='utf-8'))
+        limit = server.max_options(config, config_path)
+        if device == 'cuda':
+            torch.cuda.reset_peak_memory_stats()
+        server.service.model = load_decision_model(checkpoint=str(folder), device=device)
+        server.service.name = f"jeff-{server.service.model.base_model.rsplit('/', 1)[-1].lower()}"
+        server.service.checkpoint = str(folder)
+        server.service.max_options = limit
+        server.service.release_date = datetime.fromtimestamp(config_path.stat().st_mtime, timezone.utc).date().isoformat()
+
+    @asynccontextmanager
+    async def local_lifespan(app):
+        # 上流lifespanのローカル変数が初期モデルを保持し続けないよう、
+        # 本件の単一ベースモデルはserviceだけに所有させる。
+        await run_in_threadpool(install_model, name)
+        try:
+            yield
+        finally:
+            server.service.model = None
+
+    server.app.router.lifespan_context = local_lifespan
+
     @server.app.middleware('http')
     async def bound_request(request: Request, call_next):
         if request.method == 'GET' and request.url.path == '/':
@@ -90,6 +119,8 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
+        if request.method == 'GET' and request.url.path == '/testjeff/abstract-nouns':
+            return JSONResponse(json.loads((ROOT / 'src/data/abstract-nouns.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js'):
             return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
                             media_type='text/javascript')
@@ -116,9 +147,44 @@ def serve(name: str, port: int, device: str) -> None:
                 torch.cuda.empty_cache()
             return JSONResponse({'detail': 'GPUメモリ不足です。入力を短くするか小さいモデルへ切り替えてください。'}, status_code=503)
 
+    @server.app.post('/testjeff/model', dependencies=[Depends(server.authenticate)])
+    def switch_model(body: dict):
+        nonlocal name
+        import gc
+        wanted = body.get('model')
+        if not isinstance(wanted, str) or wanted not in MODELS or set(body) != {'model'}:
+            raise HTTPException(422, '3種類のモデルから選んでください。')
+        if not server.service.lock.acquire(blocking=False):
+            raise HTTPException(409, '評価またはモデル切り替えを実行中です。')
+        try:
+            if name == wanted and server.service.model is not None:
+                return status()
+            target_folder = checkpoint(wanted)
+            config_path = target_folder / 'decision_config.json'
+            config = json.loads(config_path.read_text(encoding='utf-8'))
+            # 推論と同じロックで排他し、旧モデルを解放してから次を読み込む。
+            server.service.model = None
+            gc.collect()
+            if device == 'cuda':
+                torch.cuda.empty_cache()
+                free, _ = torch.cuda.mem_get_info()
+                if free / 2**30 < MODELS[wanted]['minimum_free_gib']:
+                    raise RuntimeError('GPU空き容量が不足しています。小さいモデルを選んでください。')
+            install_model(wanted)
+            name = wanted
+            return status()
+        except Exception as error:
+            if device == 'cuda':
+                torch.cuda.empty_cache()
+            raise HTTPException(503, 'モデルを読み込めませんでした。小さいモデルを選んで再試行してください。') from error
+        finally:
+            server.service.lock.release()
+
     @server.app.get('/testjeff/status')
     def status():
-        return {'selected': name, 'device': device, 'revision': MODELS[name]['revision'],
+        return {'selected': name if server.service.model is not None else None,
+                'ready': server.service.model is not None, 'models': list(MODELS),
+                'device': device, 'revision': MODELS[name]['revision'],
                 'allocated_gib': torch.cuda.memory_allocated() / 2**30 if device == 'cuda' else None,
                 'peak_allocated_gib': torch.cuda.max_memory_allocated() / 2**30 if device == 'cuda' else None,
                 'reserved_gib': torch.cuda.memory_reserved() / 2**30 if device == 'cuda' else None}

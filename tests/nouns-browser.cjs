@@ -13,7 +13,7 @@ fs.mkdirSync(output, {recursive:true});
   try {
     const page = await browser.newPage({viewport:{width:1180,height:1100}});
     const errors = [], calls = [], results = [];
-    let active = 0, maxActive = 0, mode = 'normal';
+    let active = 0, maxActive = 0, mode = 'normal', selected = 'qwen-0.8b';
     page.on('pageerror', error => errors.push(error.message));
     page.on('request', request => {
       if (request.url().endsWith('/v1/systemone')) {calls.push(request.postDataJSON()); active++; maxActive = Math.max(maxActive, active);}
@@ -25,13 +25,15 @@ fs.mkdirSync(output, {recursive:true});
     });
     if (!live) await page.route('**/*', async route => {
       const url = new URL(route.request().url());
-      const files = {'/nouns':'src/nouns.html','/assets/nouns.js':'src/nouns.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json'};
+      const files = {'/nouns':'src/nouns.html','/assets/nouns.js':'src/nouns.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
       if (files[url.pathname]) return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/nouns'?'text/html':'application/json'});
+      if (url.pathname === '/testjeff/status') return route.fulfill({json:{ready:true,selected}});
+      if (url.pathname === '/testjeff/model') {selected=route.request().postDataJSON().model; return route.fulfill({json:{ready:true,selected}});}
       if (url.pathname === '/health') return route.fulfill({json:{model:'画面検証',authentication:false}});
       if (url.pathname === '/v1/systemone') {
         await new Promise(resolve => setTimeout(resolve, mode === 'slow' ? 1200 : 20));
         if (mode === 'unauthorized') return route.fulfill({status:401,json:{}});
-        return route.fulfill({json:{model:'画面検証',answers:{判定:{type:'noul',noul:.75}}}});
+        return route.fulfill({json:{model:route.request().postDataJSON().model,answers:{判定:{type:'noul',noul:.75}}}});
       }
       return route.fulfill({status:404,body:''});
     });
@@ -54,11 +56,39 @@ fs.mkdirSync(output, {recursive:true});
     assert(calls.slice(before).every(call => call.questions.判定.instructions.startsWith(`これは${target}ですか？`)));
     assert.equal(await page.locator('.percent').filter({hasText:'%'}).count(),10);
     assert.equal(maxActive,1);
+    assert.equal(await page.locator('#runs').textContent(),'1回');
+    assert.equal(await page.locator('#count').textContent(),'10件');
+    assert.equal(await page.locator('.timing').filter({hasText:'ms'}).count(),10);
+    const abstractWords = JSON.parse(fs.readFileSync(path.join(root,'src/data/abstract-nouns.json'),'utf8'));
+    assert(abstractWords.includes(target));
+    await page.locator('#random').click();
+    await page.waitForFunction(() => document.getElementById('runs').textContent === '2回');
+    assert.equal(await page.locator('#count').textContent(),'20件');
+    const sums = await page.evaluate(() => JSON.parse(localStorage.getItem('testjeff-nouns-stats-v1')));
+    assert.equal(await page.locator('#average-time').textContent(),`${(sums['qwen-0.8b'].totalMs/20).toFixed(1)} ms`);
+    for (const model of ['qwen-2b','gemma-e2b']) {
+      await page.locator('#model-select').selectOption(model);
+      await page.waitForFunction(() => document.getElementById('progress').textContent === 'モデル切り替え完了', null, {timeout:120000});
+      assert.equal(await page.locator('#runs').textContent(),'0回');
+      await page.locator('#random').click();
+      await page.waitForFunction(() => document.getElementById('runs').textContent === '1回', null, {timeout:120000});
+      assert.equal(await page.locator('#count').textContent(),'10件');
+    }
+    await page.locator('#model-select').selectOption('qwen-0.8b');
+    await page.waitForFunction(() => document.getElementById('progress').textContent === 'モデル切り替え完了', null, {timeout:120000});
+    assert.equal(await page.locator('#count').textContent(),'20件');
+    await page.reload(); await page.locator('#random:not([disabled])').waitFor();
+    assert.equal(await page.locator('#runs').textContent(),'2回');
+    const savedStatistics = await page.evaluate(() => JSON.parse(localStorage.getItem('testjeff-nouns-stats-v1')));
+    await page.locator('#reset').click();
+    assert.equal(await page.locator('#count').textContent(),'0件');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('testjeff-nouns-stats-v1'))['gemma-e2b'].count),10);
+    const beforeErrors = calls.length;
     if (!live) {
-      await page.locator('#target').fill('');
+      await page.locator('#rows input').first().fill('');
       await page.getByRole('button',{name:'評価する',exact:true}).click();
       assert((await page.locator('#error').textContent()).includes('名詞を入力'));
-      assert.equal(calls.length,10);
+      assert.equal(calls.length,beforeErrors);
       mode='slow';
       await page.locator('#random').click();
       await page.locator('#cancel').click();
@@ -68,12 +98,13 @@ fs.mkdirSync(output, {recursive:true});
       await page.locator('#evaluate').click();
       await page.locator('#auth:not(.hidden)').waitFor();
       assert((await page.locator('#error').textContent()).includes('APIキー'));
+      assert.equal(await page.locator('#count').textContent(),'0件');
     }
     assert.deepEqual(errors,[]);
     await page.screenshot({path:path.join(output,live?'nouns-live.png':'nouns-mock.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});
     await page.screenshot({path:path.join(output,live?'nouns-mobile.png':'nouns-mock-mobile.png'),fullPage:true});
-    fs.writeFileSync(path.join(output,live?'nouns-live.json':'nouns-browser.json'),JSON.stringify({target,candidates,requests:calls,results,maxActive,errors},null,2));
+    fs.writeFileSync(path.join(output,live?'nouns-live.json':'nouns-browser.json'),JSON.stringify({target,candidates,requests:calls,results,maxActive,errors,savedStatistics},null,2));
     console.log(`${live?'実GPU':'画面試験'}: ワンクリック抽選・10件評価・逐次送信・表示を確認しました。`);
   } finally {await browser.close();}
 })().catch(error => {console.error(error);process.exitCode=1;});

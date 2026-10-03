@@ -1,10 +1,11 @@
 // 抽選とJevリクエストの構築。ブラウザーと検証で共有する。
 (function (root) {
   'use strict';
-  function draw(words, count = 10, random = Math.random) {
+  function draw(words, targets, count = 10, random = Math.random) {
     const pool = [...new Set(words)];
     if (pool.length < count) throw new Error('名詞が不足しています。');
-    const target = pool[Math.floor(random() * pool.length)];
+    if (!targets.length) throw new Error('質問の名詞が不足しています。');
+    const target = targets[Math.floor(random() * targets.length)];
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -20,7 +21,16 @@
         criteria: {true: `${a}に当てはまる`, false: `${a}ではない`}}
     }};
   }
-  const api = {draw, makeRequest};
+  function accumulate(previous, timings, probabilities) {
+    if (timings.length !== 10 || probabilities.length !== 10 ||
+        !timings.every(x => Number.isFinite(x) && x >= 0) ||
+        !probabilities.every(x => Number.isFinite(x) && x >= 0 && x <= 1)) throw new Error('集計データが不正です。');
+    const old = previous || {runs:0, count:0, totalMs:0, probabilitySum:0};
+    return {runs:old.runs+1, count:old.count+10,
+      totalMs:old.totalMs+timings.reduce((a,b)=>a+b,0),
+      probabilitySum:old.probabilitySum+probabilities.reduce((a,b)=>a+b,0)};
+  }
+  const api = {draw, makeRequest, accumulate};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.NounCore = api;
 })(globalThis);
