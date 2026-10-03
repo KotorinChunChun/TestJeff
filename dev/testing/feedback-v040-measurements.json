@@ -1,0 +1,97 @@
+{
+  "rendered": [
+    {
+      "candidate": "雨",
+      "sentence": "「雨」は「道具」ではありません",
+      "yes": false,
+      "ms": 39.5
+    },
+    {
+      "candidate": "馬",
+      "sentence": "「馬」は「道具」ではありません",
+      "yes": false,
+      "ms": 40.3
+    },
+    {
+      "candidate": "自転車",
+      "sentence": "「自転車」は「道具」です",
+      "yes": true,
+      "ms": 41.3
+    },
+    {
+      "candidate": "イルカ",
+      "sentence": "「イルカ」は「道具」ではありません",
+      "yes": false,
+      "ms": 42
+    },
+    {
+      "candidate": "鉛筆",
+      "sentence": "「鉛筆」は「道具」です",
+      "yes": true,
+      "ms": 42.2
+    },
+    {
+      "candidate": "象",
+      "sentence": "「象」は「道具」ではありません",
+      "yes": false,
+      "ms": 42.4
+    },
+    {
+      "candidate": "金槌",
+      "sentence": "「金槌」は「道具」です",
+      "yes": true,
+      "ms": 44.8
+    },
+    {
+      "candidate": "りんご",
+      "sentence": "「りんご」は「道具」ではありません",
+      "yes": false,
+      "ms": 45.9
+    },
+    {
+      "candidate": "椅子",
+      "sentence": "「椅子」は「道具」です",
+      "yes": true,
+      "ms": 46.7
+    },
+    {
+      "candidate": "一年",
+      "sentence": "「一年」は「道具」ではありません",
+      "yes": false,
+      "ms": 433.3
+    }
+  ],
+  "records": [
+    {
+      "event_id": "56bc3d20-254b-4348-ac5c-af92bf5f92ae",
+      "result_id": "7463ceee-4f92-479f-b9f7-9b1642aed5be",
+      "run_id": "91b13c31-256d-4e87-9db2-86f00dcc12ad",
+      "target": "道具",
+      "candidate": "雨",
+      "model": "qwen-0.8b",
+      "probability": 0.06247701006984319,
+      "response_ms": 39.5,
+      "evaluated_at": "2026-10-03T14:48:57.310000Z",
+      "rating": "良かった",
+      "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+      "sentence": "「雨」は「道具」ではありません",
+      "recorded_at": "2026-10-03T23:48:57.360220+09:00"
+    },
+    {
+      "event_id": "ab536960-ec15-4a55-bdb1-3ef4f9399b32",
+      "result_id": "7463ceee-4f92-479f-b9f7-9b1642aed5be",
+      "run_id": "91b13c31-256d-4e87-9db2-86f00dcc12ad",
+      "target": "道具",
+      "candidate": "雨",
+      "model": "qwen-0.8b",
+      "probability": 0.06247701006984319,
+      "response_ms": 39.5,
+      "evaluated_at": "2026-10-03T14:48:57.310000Z",
+      "rating": "悪かった",
+      "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+      "sentence": "「雨」は「道具」ではありません",
+      "recorded_at": "2026-10-03T23:48:57.425765+09:00"
+    }
+  ],
+  "errors": []
+}
