@@ -18,4 +18,10 @@ Jevの実サービスへの接続・完全互換性の比較試験は行って�
 
 Node.jsはブラウザーテスト専用。`npm ci`、`npm test` で辞書と抽選、日本語画面の送信内容を確認できる。`node tests/nouns-browser.cjs` は既存Microsoft Edgeをヘッドレスで起動し、1クリックでの抽選・10件評価・逐次通信・空入力・中止・認証エラーを確認する。追加ブラウザーのダウンロードは不要。Playwrightの依存は本件内node_modulesへ分離する。
 
-実モデルでのブラウザーテストは、サーバー起動後にpwshで `$env:LIVE_URL='http://127.0.0.1:8765'; node tests/nouns-browser.cjs` を実行する。初期例10件とランダム10件、計20件を推論する。JSONとパソコン幅・スマートフォン幅のスクリーンショットはdev/testing/outputへ保存する。
+実モデルでのブラウザーテストは、サーバー起動後にpwshで `$env:LIVE_URL='http://127.0.0.1:8765'; node tests/nouns-browser.cjs` を実行する。現在の検証件数と切り替え順は次段落を参照する。JSONとパソコン幅・スマートフォン幅のスクリーンショットはdev/testing/outputへ保存する。
+
+v0.3.0以降のブラウザーテストは計50件（0.8Bの手動10件＋ランダム20件、2B/Gemma各10件）。起動モデルを0.8Bにして実行し、最後に0.8Bへ戻す。モデル別の加算・平均値・再読込・リセット・中止/失敗除外も確認する。
+
+`POST /testjeff/model` は `{"model":"qwen-2b"}` 等を受け取り、推論と同じservice.lockで排他する。旧モデルを解放・GC・CUDAキャッシュ解放後に次モデルをロードする。上流lifespanはモデルをローカル変数に保持するため、本件のlifespanはserviceだけにモデルを所有させる。同時切り替えは409、不正モデルは422、ロード失敗は503。APIキーの認証は既存と共通。
+
+`GET /testjeff/status` のready/selectedで利用可能状態を確認する。評価リクエストでは実モデル名を固定し、他画面の切り替えによる異なるモデルの結果が同一集計に混ざることを防ぐ。Aはabstract-nouns.jsonの46分類。ブラウザー集計はtestjeff-nouns-stats-v1キーにモデル別のruns/count/totalMs/probabilitySumを保存し、1回10件成功した場合のみ更新する。

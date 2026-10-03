@@ -1,0 +1,62 @@
+{
+  "transitions": [
+    {
+      "selected": "qwen-0.8b",
+      "ready": true,
+      "models": [
+        "qwen-0.8b",
+        "qwen-2b",
+        "gemma-e2b"
+      ],
+      "device": "cuda",
+      "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+      "allocated_gib": 1.6490111351013184,
+      "peak_allocated_gib": 1.6490111351013184,
+      "reserved_gib": 1.73046875
+    },
+    {
+      "selected": "qwen-2b",
+      "ready": true,
+      "models": [
+        "qwen-0.8b",
+        "qwen-2b",
+        "gemma-e2b"
+      ],
+      "device": "cuda",
+      "revision": "00448e884cce9e34396d8c72e9a692b41383b1ee",
+      "allocated_gib": 4.154728889465332,
+      "peak_allocated_gib": 4.154728889465332,
+      "reserved_gib": 4.25
+    },
+    {
+      "selected": "gemma-e2b",
+      "ready": true,
+      "models": [
+        "qwen-0.8b",
+        "qwen-2b",
+        "gemma-e2b"
+      ],
+      "device": "cuda",
+      "revision": "e3de3e99a979f92afd995d4e526c7e3170ae49cf",
+      "allocated_gib": 8.656311988830566,
+      "peak_allocated_gib": 8.656311988830566,
+      "reserved_gib": 8.716796875
+    },
+    {
+      "selected": "qwen-0.8b",
+      "ready": true,
+      "models": [
+        "qwen-0.8b",
+        "qwen-2b",
+        "gemma-e2b"
+      ],
+      "device": "cuda",
+      "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+      "allocated_gib": 1.6490111351013184,
+      "peak_allocated_gib": 1.6490111351013184,
+      "reserved_gib": 1.73046875
+    }
+  ],
+  "invalid_model_status": 422,
+  "concurrent_switch_status": 409
+}

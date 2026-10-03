@@ -162,6 +162,7 @@ def serve(name: str, port: int, device: str) -> None:
             target_folder = checkpoint(wanted)
             config_path = target_folder / 'decision_config.json'
             config = json.loads(config_path.read_text(encoding='utf-8'))
+            server.max_options(config, config_path)
             # 推論と同じロックで排他し、旧モデルを解放してから次を読み込む。
             server.service.model = None
             gc.collect()

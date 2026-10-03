@@ -4,3 +4,4 @@
 - 実測結果: testing/RESULTS.md
 - 配布: RELEASE_RULE.md
 - 名詞判定の実装記録: history/v0.2.0/v0.2.0-imp.md
+- 計測・モデル選択の実装記録: history/v0.3.0/v0.3.0-imp.md

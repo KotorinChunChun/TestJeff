@@ -1,0 +1,1541 @@
+{
+  "target": "料理",
+  "candidates": [
+    "タオル",
+    "鏡",
+    "小鉢",
+    "電気コンロ",
+    "飴",
+    "画鋲",
+    "小川",
+    "競技場",
+    "カシューナッツ",
+    "ボウル"
+  ],
+  "requests": [
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "犬"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "猫"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "馬"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "象"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "イルカ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "りんご"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "椅子"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "自転車"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "鉛筆"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "雨"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは動物ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "動物に当てはまる",
+            "false": "動物ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "タオル"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "鏡"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "小鉢"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "電気コンロ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "飴"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "画鋲"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "小川"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "競技場"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "カシューナッツ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "ボウル"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは料理ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "料理に当てはまる",
+            "false": "料理ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "港"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "パイナップル"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "コップ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "魚類"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "烏龍茶"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "食器棚"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "羊"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "流星"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "チョコレート"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "state": {
+        "対象": "冷蔵庫"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは鳥類ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "鳥類に当てはまる",
+            "false": "鳥類ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "生姜"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "ポテトチップス"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "カッター"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "惑星"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "理容師"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "消防署"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "手"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "ブローチ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "鷹"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "state": {
+        "対象": "戸棚"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは道具ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "道具に当てはまる",
+            "false": "道具ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "ミシン"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "飴"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "ドリアン"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "映画館"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "電話機"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "パジャマ"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "麦わら帽子"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "生姜"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "麦茶"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "state": {
+        "対象": "蓮根"
+      },
+      "questions": {
+        "判定": {
+          "type": "noul",
+          "instructions": "これは施設ですか？ 対象の名詞の一般的な意味に基づいて判定してください。",
+          "criteria": {
+            "true": "施設に当てはまる",
+            "false": "施設ではない"
+          }
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.9573780023172573
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.943942971109919
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.780362713629563
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.7493038773536682
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.9618407393461852
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.014676379274115579
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.008301399462638807
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.012375179814279632
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.011690309603729259
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.024408961941068123
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.021809779920048265
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.028882433139112415
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.20991996556281942
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.3210079467596992
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.06247695069657046
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.06593867939893366
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.1006697416305542
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.024408961941068123
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.48559728350655534
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.15826873717112447
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.017397968649427345
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.032296700821964404
+        }
+      },
+      "usage": {
+        "input_tokens": 109,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.018410990574178023
+        }
+      },
+      "usage": {
+        "input_tokens": 108,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.013865930365554247
+        }
+      },
+      "usage": {
+        "input_tokens": 108,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.02581950219378988
+        }
+      },
+      "usage": {
+        "input_tokens": 109,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.02581950219378988
+        }
+      },
+      "usage": {
+        "input_tokens": 109,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.040331521041650796
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.008789505181099933
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.024408961941068123
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.010430979668724104
+        }
+      },
+      "usage": {
+        "input_tokens": 107,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.10512527510150448
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.12166057708353664
+        }
+      },
+      "usage": {
+        "input_tokens": 108,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.8309563870585503
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.03575471868562815
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.15417256491862044
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.07791651446681917
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.271228513979062
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.5546912120190624
+        }
+      },
+      "usage": {
+        "input_tokens": 106,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.12166057708353664
+        }
+      },
+      "usage": {
+        "input_tokens": 104,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.5274280152491326
+        }
+      },
+      "usage": {
+        "input_tokens": 105,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.09372684080222723
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.009178793280058191
+        }
+      },
+      "usage": {
+        "input_tokens": 99,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.1603367704002513
+        }
+      },
+      "usage": {
+        "input_tokens": 101,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.9534768142503078
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.12321399989138543
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.01716908680624231
+        }
+      },
+      "usage": {
+        "input_tokens": 101,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.026133285919821704
+        }
+      },
+      "usage": {
+        "input_tokens": 102,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.012935258737249496
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.058697272756092926
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    },
+    {
+      "model": "jeff-gemma-4-e2b-it",
+      "answers": {
+        "判定": {
+          "type": "noul",
+          "noul": 0.016225424207854337
+        }
+      },
+      "usage": {
+        "input_tokens": 100,
+        "output_tokens": 0,
+        "orders": 1
+      }
+    }
+  ],
+  "maxActive": 1,
+  "errors": [],
+  "savedStatistics": {
+    "qwen-0.8b": {
+      "runs": 2,
+      "count": 20,
+      "totalMs": 919.1000000052154,
+      "probabilitySum": 1.6965520423577325
+    },
+    "qwen-2b": {
+      "runs": 1,
+      "count": 10,
+      "totalMs": 447.5,
+      "probabilitySum": 2.8005943556454533
+    },
+    "gemma-e2b": {
+      "runs": 1,
+      "count": 10,
+      "totalMs": 487.09999999403954,
+      "probabilitySum": 1.471093547051491
+    }
+  }
+}
