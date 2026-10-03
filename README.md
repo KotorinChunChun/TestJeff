@@ -9,7 +9,7 @@ cd C:\develop\test\TestJeff
 pwsh -NoProfile -File .\dev\scripts\jeff.ps1 serve --model qwen-0.8b
 ```
 
-起動後 [実験画面](http://127.0.0.1:8765) を開きます。公式画面のJSON欄に入力し、`/v1/systemone` を実行できます。
+起動後 [実験画面](http://127.0.0.1:8765) を開きます。公式画面の `Context` に状況、`Questions · JSON` に質問を入力し、`Run prediction` で実行します。
 モデルを切り替える場合は `Ctrl+C` で終了してから、次のいずれかで起動します。同じポートの二重起動は拒否します。
 
 ```powershell
@@ -24,7 +24,7 @@ pwsh -NoProfile -File .\dev\scripts\jeff.ps1 serve --model gemma-e2b
 | gemma-e2b | Jeff-Gemma4-E2B | 11GiB以上 |
 
 空き容量は短文実験用の保守的な目安です。実測値は [検証結果](dev/testing/RESULTS.md) を参照してください。
-GPUメモリ不足時は小さいモデルを使うか、起動時に `--device cpu` を付けます。CPUは遅くなります。
+GPUメモリ不足時は小さいモデルを使うか、起動時に `--device cpu` を付けます。CPU経路は用意していますが今回の実測対象外で、GPUより遅くなります。
 1モデルずつ常駐、質問は1件ずつ推論、最大4質問、本文32KiBまで、画像なし。PyTorchの割り当て上限をGPU総容量の85%にしています。ほかのGPUアプリの使用量や入力長によってはメモリ不足になるため、その場合は503を返します。
 
 ## APIを試す

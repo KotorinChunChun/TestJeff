@@ -20,6 +20,6 @@
 |---|---|
 | 利用 | README.md |
 | 改造・再現 | docs/DEVELOPERS_GUIDE.md、src/testjeff.py、models.json |
-| 実装計画 | dev/v0.1.0-imp.md（完成後history/v0.1.0） |
+| 実装計画 | dev/history/v0.1.0/v0.1.0-imp.md |
 | 実測 | dev/testing/RESULTS.md |
 | 配布 | dev/RELEASE_RULE.md |

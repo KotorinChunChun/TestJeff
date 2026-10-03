@@ -1,0 +1,413 @@
+[
+  {
+    "name": "qwen-0.8b",
+    "passed": true,
+    "load_seconds": 8.037925200000245,
+    "memory": {
+      "selected": "qwen-0.8b",
+      "device": "cuda",
+      "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+      "allocated_gib": 1.6490111351013184,
+      "peak_allocated_gib": 1.667314052581787,
+      "reserved_gib": 1.748046875
+    },
+    "records": [
+      {
+        "case": "英語の画面選択",
+        "seconds": 0.6581932999997662,
+        "result": {
+          "model": "jeff-qwen3.5-0.8b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9942154093845528,
+                "2": 0.004677170796114405,
+                "3": 0.0011074198193328304
+              },
+              "choice": "1",
+              "confidence": 0.9913231140768292
+            }
+          },
+          "usage": {
+            "input_tokens": 114,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      },
+      {
+        "case": "日本語の画面選択",
+        "seconds": 0.0894934000007197,
+        "result": {
+          "model": "jeff-qwen3.5-0.8b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.012939628767988574,
+                "2": 0.9748453319472123,
+                "3": 0.012215039284799068
+              },
+              "choice": "2",
+              "confidence": 0.9622679979208185
+            }
+          },
+          "usage": {
+            "input_tokens": 119,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "2",
+        "matches_expected": true
+      },
+      {
+        "case": "真偽・スコア・選択の複数質問",
+        "seconds": 0.29077719999986584,
+        "result": {
+          "model": "jeff-qwen3.5-0.8b",
+          "answers": {
+            "resolved": {
+              "type": "noul",
+              "noul": 0.9524191724406835
+            },
+            "sentiment": {
+              "type": "score",
+              "probabilities": {
+                "0": 0.0038960127172091522,
+                "1": 0.011644753074382985,
+                "2": 0.9844592342084079
+              },
+              "legend": {
+                "0": "Very negative",
+                "1": "Neutral",
+                "2": "Very positive"
+              },
+              "score": 1.9805632214911988,
+              "confidence": 0.9708448322367981
+            },
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9953176400533936,
+                "2": 0.004682359946606386
+              },
+              "choice": "1",
+              "confidence": 0.9906352801067873
+            }
+          },
+          "usage": {
+            "input_tokens": 319,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": null,
+        "matches_expected": null
+      },
+      {
+        "case": "選択肢順序反転平均",
+        "seconds": 0.1981999999989057,
+        "result": {
+          "model": "jeff-qwen3.5-0.8b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9889570964751704,
+                "2": 0.011042903524829643
+              },
+              "choice": "1",
+              "confidence": 0.9779141929503408
+            }
+          },
+          "usage": {
+            "input_tokens": 182,
+            "output_tokens": 0,
+            "orders": 2
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      }
+    ],
+    "negative_checks": 3
+  },
+  {
+    "name": "qwen-2b",
+    "passed": true,
+    "load_seconds": 10.030486400000882,
+    "memory": {
+      "selected": "qwen-2b",
+      "device": "cuda",
+      "revision": "00448e884cce9e34396d8c72e9a692b41383b1ee",
+      "allocated_gib": 4.154728889465332,
+      "peak_allocated_gib": 4.173121452331543,
+      "reserved_gib": 4.267578125
+    },
+    "records": [
+      {
+        "case": "英語の画面選択",
+        "seconds": 0.45206119999966177,
+        "result": {
+          "model": "jeff-qwen3.5-2b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9845612108704148,
+                "2": 0.010907924800088174,
+                "3": 0.004530864329496974
+              },
+              "choice": "1",
+              "confidence": 0.9768418163056221
+            }
+          },
+          "usage": {
+            "input_tokens": 114,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      },
+      {
+        "case": "日本語の画面選択",
+        "seconds": 0.0482681000012235,
+        "result": {
+          "model": "jeff-qwen3.5-2b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.004551843921678567,
+                "2": 0.9891200640508493,
+                "3": 0.006328092027472178
+              },
+              "choice": "2",
+              "confidence": 0.9836800960762739
+            }
+          },
+          "usage": {
+            "input_tokens": 119,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "2",
+        "matches_expected": true
+      },
+      {
+        "case": "真偽・スコア・選択の複数質問",
+        "seconds": 0.13999760000115202,
+        "result": {
+          "model": "jeff-qwen3.5-2b",
+          "answers": {
+            "resolved": {
+              "type": "noul",
+              "noul": 0.9871054621170662
+            },
+            "sentiment": {
+              "type": "score",
+              "probabilities": {
+                "0": 0.0007657948382146296,
+                "1": 0.007900129488660894,
+                "2": 0.9913340756731245
+              },
+              "legend": {
+                "0": "Very negative",
+                "1": "Neutral",
+                "2": "Very positive"
+              },
+              "score": 1.9905682808349099,
+              "confidence": 0.9858524212523647
+            },
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9986269227567934,
+                "2": 0.0013730772432065132
+              },
+              "choice": "1",
+              "confidence": 0.9972538455135869
+            }
+          },
+          "usage": {
+            "input_tokens": 319,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": null,
+        "matches_expected": null
+      },
+      {
+        "case": "選択肢順序反転平均",
+        "seconds": 0.08463289999963308,
+        "result": {
+          "model": "jeff-qwen3.5-2b",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9916319881739281,
+                "2": 0.00836801182607193
+              },
+              "choice": "1",
+              "confidence": 0.9832639763478561
+            }
+          },
+          "usage": {
+            "input_tokens": 182,
+            "output_tokens": 0,
+            "orders": 2
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      }
+    ],
+    "negative_checks": 3
+  },
+  {
+    "name": "gemma-e2b",
+    "passed": true,
+    "load_seconds": 14.018027100000836,
+    "memory": {
+      "selected": "gemma-e2b",
+      "device": "cuda",
+      "revision": "e3de3e99a979f92afd995d4e526c7e3170ae49cf",
+      "allocated_gib": 8.656311988830566,
+      "peak_allocated_gib": 8.668392181396484,
+      "reserved_gib": 8.740234375
+    },
+    "records": [
+      {
+        "case": "英語の画面選択",
+        "seconds": 0.40169480000076874,
+        "result": {
+          "model": "jeff-gemma-4-e2b-it",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9988687190369591,
+                "2": 0.00013117501912386284,
+                "3": 0.0010001059439170813
+              },
+              "choice": "1",
+              "confidence": 0.9983030785554384
+            }
+          },
+          "usage": {
+            "input_tokens": 112,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      },
+      {
+        "case": "日本語の画面選択",
+        "seconds": 0.04642010000134178,
+        "result": {
+          "model": "jeff-gemma-4-e2b-it",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.0005824094086051507,
+                "2": 0.9985921237331871,
+                "3": 0.0008254668582077612
+              },
+              "choice": "2",
+              "confidence": 0.9978881855997804
+            }
+          },
+          "usage": {
+            "input_tokens": 115,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": "2",
+        "matches_expected": true
+      },
+      {
+        "case": "真偽・スコア・選択の複数質問",
+        "seconds": 0.13184800000090036,
+        "result": {
+          "model": "jeff-gemma-4-e2b-it",
+          "answers": {
+            "resolved": {
+              "type": "noul",
+              "noul": 0.9968962632235279
+            },
+            "sentiment": {
+              "type": "score",
+              "probabilities": {
+                "0": 0.00012839541059336894,
+                "1": 0.037043159775610165,
+                "2": 0.9628284448137965
+              },
+              "legend": {
+                "0": "Very negative",
+                "1": "Neutral",
+                "2": "Very positive"
+              },
+              "score": 1.9627000494032032,
+              "confidence": 0.9440500741048047
+            },
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9988950699763305,
+                "2": 0.0011049300236695332
+              },
+              "choice": "1",
+              "confidence": 0.997790139952661
+            }
+          },
+          "usage": {
+            "input_tokens": 311,
+            "output_tokens": 0,
+            "orders": 1
+          }
+        },
+        "expected_choice": null,
+        "matches_expected": null
+      },
+      {
+        "case": "選択肢順序反転平均",
+        "seconds": 0.09746909999921627,
+        "result": {
+          "model": "jeff-gemma-4-e2b-it",
+          "answers": {
+            "intent": {
+              "type": "choice",
+              "probabilities": {
+                "1": 0.9953068148108565,
+                "2": 0.004693185189143548
+              },
+              "choice": "1",
+              "confidence": 0.990613629621713
+            }
+          },
+          "usage": {
+            "input_tokens": 176,
+            "output_tokens": 0,
+            "orders": 2
+          }
+        },
+        "expected_choice": "1",
+        "matches_expected": true
+      }
+    ],
+    "negative_checks": 3
+  }
+]

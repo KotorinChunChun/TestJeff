@@ -1,0 +1,44 @@
+# 実機検証結果
+
+測定日: 2026-10-03（日本時間）。Windows、RAM約64GB、NVIDIA GeForce RTX 5070 Ti / VRAM 16303MiB、ドライバー610.62。
+Python 3.12.10専用.venv、torch 2.14.0+cu130、torchvision 0.29.0+cu130、transformers 5.17.0。
+上流: https://github.com/firelex/jeff、コミット d0173b4ee317a46dee031421b713f3fc5f868cfe。モデルSHAはmodels.jsonに固定。
+
+## GPU推論
+
+`jeff.ps1 verify --all` を実行し、0.8B→2B→Gemmaの順で1モデルずつ起動・API呼び出し・終了した。
+
+| モデル | 起動秒 | 日本語1件のHTTP応答ms | PyTorch最大割当GiB | PyTorch予約GiB | 日本語「設定」の確率 |
+|---|---:|---:|---:|---:|---:|
+| Qwen3.5-0.8B | 8.04 | 89.49 | 1.667 | 1.748 | 0.9748 |
+| Qwen3.5-2B | 10.03 | 48.27 | 4.173 | 4.268 | 0.9891 |
+| Gemma4-E2B | 14.02 | 46.42 | 8.668 | 8.740 | 0.9986 |
+
+全モデルで英語・日本語・順序反転の選択が期待値と一致。真偽は解決済みと高確率で判定、スコアはポジティブ側（0〜2段階の約1.96〜1.99）だった。
+これは固定した短いサンプルの動作確認であり、汎用精度・日本語全般の品質評価ではない。応答時間は各1回で、初回の英語呼び出しによるウォームアップ後。0.8Bの別実行では日本語約41〜42msだったため、モデル間の速度順位はこの表から判断しない。
+GPU数値はPyTorchの割り当て・予約分で、Windows描画やCUDAコンテキスト等を含むGPU全体消費とは異なる。ほかのアプリが約2.2GiB使用する環境でも3モデルを実行できた。長文・画像・同時処理・学習は検証していない。CPUモードは実測対象外。
+
+## 確認項目
+
+- 3モデルそれぞれで実HTTPの正常リクエスト4件（6質問、orders=2を含む）成功。
+- choice / noul / scoreの型、確率合計、値域、選択肢集合を検証。
+- 各モデルで不正モデル・空質問の422、32KiB超過の413、画像入力拒否の422を確認（合計9件）。
+- /health、/v1/models、/testjeff/status成功。
+- 公式test_server_limits.pyとtest_device.py: 4 passed。Starlette/httpxの非推奨警告1件。
+- Pythonコンパイルとuv pip check成功。
+- 公式画面のGET /: HTTP 200、入力フォーム・質問欄を確認。pwshのInvoke-RestMethodから日本語入力も成功。
+- ブラウザー自動操作ツールは接続が2回タイムアウトしたため、クリックによる送信操作は未確認。HTML配信確認とは区別する。
+- 3モデル切り替え時のプロセス終了・ポート解放を確認。検証サーバーはすべて停止済み。
+
+QwenはWindows上で高速化用causal_conv1d / flash-linear-attentionを追加せず、公式のPyTorch代替実装を使用した。学習用依存は導入していない。
+Jevの外部サービスとの同一出力比較は行っておらず、JeffのJev形式APIを検証した結果である。
+
+## 証跡と再現
+
+固定リクエスト: tests/requests.json。追跡する測定値: dev/testing/measurements.json。実機依存一覧: dev/testing/environment.txt。
+生JSON・起動ログはGit対象外のdev/testing/outputに保存。READMEのverifyコマンドで再測定できる。
+
+## 初期化・登録
+
+独立Gitとprivate GitHub https://github.com/KotorinChunChun/TestJeff を作成。モデル本体・.venv・キャッシュはGit対象外。
+共通台帳へ登録（default: 91f2b1a）、DevLauncher原本へ登録（76df7b3）。ランチャーのインストール済み版への再配布は行っていない。
