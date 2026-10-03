@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>名詞判定</title>
+  <title>Jev互換ローカルモデル判定</title>
   <style>
     :root {font-family:system-ui,"Yu Gothic UI",sans-serif;color:#23362c;background:#f4f6f3;color-scheme:light}
     *{box-sizing:border-box} body{margin:0} main{max-width:1320px;margin:auto;padding:10px 16px 20px}
@@ -31,7 +31,7 @@
 </head>
 <body>
 <main>
-  <header><h1>名詞判定</h1><nav><a href="/battle">モデル対戦</a><button id="download-feedback">記録をダウンロード</button><a href="/">サンプル一覧</a></nav></header>
+  <header><h1>Jev互換ローカルモデル判定</h1><nav><a href="/battle">モデル対戦</a><button id="download-feedback">記録をダウンロード</button><a href="/">サンプル一覧</a></nav></header>
   <section class="card">
     <div class="stats" aria-label="サーバー使用量"><div title="サーバープロセスの物理メモリ使用量">メモリ<strong id="resource-memory">取得中</strong></div><div title="本ツールのPyTorchが使用中のGPUメモリ。ドライバー等は含みません">GPUメモリ（使用）<strong id="resource-gpu">取得中</strong></div><div title="使用中の領域と再利用用キャッシュを含むPyTorchの確保量。使用量とは加算しません">GPUメモリ（確保）<strong id="resource-reserved">取得中</strong></div><div title="サーバープロセスのCPU時間増分。全論理CPUの合計を100%として計算">CPU使用率<strong id="resource-cpu">取得中</strong></div></div>
     <div class="controls">
