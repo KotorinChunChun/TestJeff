@@ -64,7 +64,7 @@ def serve(name: str, port: int, device: str) -> None:
         os.environ.pop(key, None)
     from jeff import server
     from fastapi import Request
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import HTMLResponse, JSONResponse
     import uvicorn
 
     original = server.distributions
@@ -82,6 +82,10 @@ def serve(name: str, port: int, device: str) -> None:
 
     @server.app.middleware('http')
     async def bound_request(request: Request, call_next):
+        if request.method == 'GET' and request.url.path == '/':
+            return HTMLResponse((ROOT / 'src/playground.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path == '/testjeff/examples':
+            return JSONResponse(json.loads((ROOT / 'tests/requests.json').read_text(encoding='utf-8')))
         if request.url.path == '/v1/systemone' and request.method == 'POST':
             body = bytearray()
             async for chunk in request.stream():
@@ -151,11 +155,11 @@ def smoke(port: int) -> dict:
                 assert 0 <= answer['score'] <= len(case['request']['questions'][key]['criteria']) - 1
         records.append({'case': case['name'], 'seconds': elapsed, 'result': result,
                         'expected_choice': case.get('expected_choice'),
-                        'matches_expected': answers.get('intent', {}).get('choice') == case['expected_choice']
+                        'matches_expected': answers.get('行動', {}).get('choice') == case['expected_choice']
                         if 'expected_choice' in case else None})
-    for payload, expected in [({'model': 'unknown', 'state': '', 'questions': {}}, 422),
-                              ({'state': 'x' * 33000}, 413),
-                              ({'model': 'jeff-latest', 'state': '', 'questions': {}, 'images': ['x']}, 422)]:
+    for payload, expected in [({'model': '未登録モデル', 'state': '雨の日に出かけます。', 'questions': {}}, 422),
+                              ({'state': 'あ' * 11000}, 413),
+                              ({'model': 'jeff-latest', 'state': '写真を確認します。', 'questions': {}, 'images': ['画像のダミー']}, 422)]:
         try:
             request_api(port, '/v1/systemone', payload)
         except urllib.error.HTTPError as error:

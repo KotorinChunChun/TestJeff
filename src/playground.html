@@ -1,0 +1,659 @@
+<!-- firelex/jeffのMITライセンスに基づく日本語版。ライセンスはvendor/jeff/LICENSEを参照。 -->
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jeff</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --line: #e1e7e3;
+        --text: #000000;
+        --muted: #000000;
+        --accent: #4c9b5e;
+        --mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.55 var(--mono);
+      }
+      header,
+      main,
+      footer {
+        max-width: 1200px;
+        margin: auto;
+        padding: 24px 32px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-family: var(--mono);
+        font-size: 22px;
+        letter-spacing: -0.7px;
+        font-weight: 700;
+      }
+      .brand span {
+        font-weight: 400;
+        color: var(--muted);
+        font-size: 14px;
+        margin-left: 15px;
+        letter-spacing: 0;
+      }
+      .status {
+        font: 12px var(--mono);
+        color: var(--muted);
+      }
+      .status::before {
+        content: "●";
+        color: #99a7ac;
+        margin-right: 8px;
+      }
+      .status[data-state="ready"]::before { color: var(--accent); }
+      .intro {
+        padding: 22px 0 32px;
+      }
+      h1 {
+        font-family: var(--mono);
+        font-weight: 400;
+        font-size: 36px;
+        line-height: 1.2;
+        letter-spacing: -1.1px;
+        margin: 8px 0 12px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .eyebrow {
+        color: var(--text);
+        font: 11px var(--mono);
+        letter-spacing: 1.6px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+        gap: 24px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel-head {
+        padding: 17px 20px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .panel-body {
+        padding: 20px;
+      }
+      .badge {
+        font: 11px var(--mono);
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 3px 7px;
+      }
+      label {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      textarea,
+      input,
+      select {
+        width: 100%;
+        background: #ffffff;
+        color: var(--text);
+        border: 1px solid #d5ded8;
+        border-radius: 7px;
+        padding: 11px;
+        font: 13px/1.5 var(--mono);
+      }
+      input::placeholder { color: #000; opacity: 1; }
+      textarea {
+        resize: vertical;
+        min-height: 120px;
+      }
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      button,
+      .upload {
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--text);
+        border-radius: 7px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font: 12px var(--mono);
+      }
+      button:hover,
+      .upload:hover {
+        border-color: var(--accent);
+      }
+      button:focus-visible,
+      a:focus-visible,
+      .upload:focus-within {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      .run {
+        background: #abd3af;
+        color: #000000;
+        border: 0;
+        font-weight: 650;
+        padding: 12px 20px;
+        min-width: 142px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 14px 0;
+      }
+      .toolbar .upload {
+        margin: 0;
+        color: var(--text);
+      }
+      .upload { position: relative; }
+      .upload input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+        font: 11px var(--mono);
+        padding: 0;
+        border: 0;
+        margin-left: 6px;
+      }
+      .field {
+        margin-top: 19px;
+      }
+      #questions {
+        min-height: 240px;
+        font-size: 12px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-top: 18px;
+        gap: 12px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .samples button[aria-pressed="true"] {
+        background: #edf5ee;
+        color: #000000;
+        border-color: #abd3af;
+      }
+      .samples button {
+        padding: 5px 9px;
+        font-size: 11px;
+      }
+      .samples {
+        flex-wrap: wrap;
+        display: flex;
+        gap: 6px;
+      }
+      .result-list {
+        display: grid;
+        gap: 14px;
+      }
+      .result {
+        border-bottom: 1px solid var(--line);
+        padding: 0 0 18px;
+      }
+      .result-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+      }
+      .result-value {
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 24px;
+        font-weight: 650;
+        letter-spacing: -0.5px;
+        margin: 9px 0 12px;
+        overflow-wrap: anywhere;
+      }
+      .bar-row {
+        display: grid;
+        grid-template-columns: minmax(55px, 1fr) 2fr 43px;
+        gap: 10px;
+        align-items: center;
+        font: 11px var(--mono);
+        margin: 9px 0;
+      }
+      .bar-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .track {
+        height: 9px;
+        background: #edf3ee;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 8px;
+      }
+      .percentage {
+        text-align: right;
+        color: var(--muted);
+      }
+      .confidence {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 12px;
+      }
+      .empty {
+        padding: 65px 18px;
+        text-align: center;
+      }
+      .empty svg {
+        width: 48px;
+        height: 48px;
+        stroke: var(--accent);
+        margin-bottom: 15px;
+      }
+      .empty p {
+        font-size: 13px;
+        margin-top: 8px;
+      }
+      .error {
+        color: #000000;
+        background: #fff6f3;
+        border: 1px solid #ebc8bf;
+        border-radius: 8px;
+        padding: 13px;
+        white-space: pre-wrap;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+      .hidden {
+        display: none !important;
+      }
+      details {
+        margin-top: 20px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+      summary {
+        color: var(--muted);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font: 11px/1.7 var(--mono);
+        color: #000000;
+        max-height: 450px;
+        overflow: auto;
+      }
+      .images {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .images img {
+        height: 70px;
+        max-width: 130px;
+        object-fit: contain;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+      }
+      #latency {
+        font: 11px var(--mono);
+        color: var(--muted);
+      }
+      footer {
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      a {
+        color: var(--muted);
+      }
+      @media (max-width: 800px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        header,
+        main,
+        footer {
+          padding: 20px;
+        }
+        h1 {
+        font-family: var(--mono);
+        font-weight: 400;
+          font-size: 29px;
+        }
+        .brand span {
+          display: none;
+        }
+        .panel-head {
+          flex-wrap: wrap;
+        }
+        .samples {
+        flex-wrap: wrap;
+          flex-wrap: wrap;
+        }
+        footer {
+          flex-direction: column;
+        }
+      }
+      .label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .label-row label { margin: 0; }
+      #format { width: auto; padding: 5px 8px; font: 11px var(--mono); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">Jeff</div>
+      <div id="status" class="status" role="status">接続中</div>
+    </header>
+    <main>
+      <div class="layout">
+        <section class="panel" aria-label="入力">
+          <div class="panel-head">
+            <h2>入力</h2>
+            <div class="samples" id="samples"></div>
+          </div>
+          <form id="form" class="panel-body">
+            <div class="label-row">
+              <label for="state">状況</label>
+              <select id="format" aria-label="状況の形式">
+                <option value="text">文章</option>
+                <option value="json">JSON</option>
+              </select>
+            </div>
+            <textarea id="state" spellcheck="false"></textarea>
+            <div class="toolbar hidden">
+              <label class="upload"
+                >画像を添付<input
+                  id="files"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple /></label
+              ><button type="button" id="clear-images" class="hidden">
+                Clear</button
+              >
+            </div>
+            <div id="images" class="images"></div>
+            <div class="field">
+              <label for="questions">質問</label
+              ><textarea id="questions" spellcheck="false"></textarea>
+            </div>
+            <div class="field hidden" id="auth-field">
+              <label for="key">APIキー</label
+              ><input
+                id="key"
+                type="password"
+                autocomplete="off"
+                placeholder="APIキーを入力"
+              />
+            </div>
+            <div class="field"><label for="orders">選択肢の順序</label><select id="orders"><option value="1">そのまま判定</option><option value="2">反転した順序でも判定して平均</option></select></div>
+            <div class="actions">
+              <button class="run" id="run" type="submit">
+                判定する
+              </button>
+            </div>
+          </form>
+        </section>
+        <section class="panel" aria-label="判定結果">
+          <div class="panel-head">
+            <h2>判定結果</h2>
+            <span id="latency"></span>
+          </div>
+          <div class="panel-body" aria-live="polite">
+            <div id="empty" class="empty">
+              <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                <rect x="6" y="10" width="36" height="28" rx="5" />
+                <path d="m14 25 6 6 14-14" stroke-width="2" />
+              </svg>
+              <h2>未実行</h2>
+            </div>
+            <div id="error" class="error hidden" role="alert"></div>
+            <div id="results" class="result-list"></div>
+            <details id="raw-section" class="hidden">
+              <summary>応答JSON</summary>
+              <pre id="raw"></pre>
+              <button id="copy" type="button">応答をコピー</button>
+            </details>
+            <details>
+              <summary>送信JSON</summary>
+              <pre id="request-preview"></pre>
+            </details>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer>
+      <span
+        ><a href="/docs" target="_blank" rel="noopener">API仕様 ↗</a>
+</span
+      >
+    </footer>
+    <script>
+      const $ = (id) => document.getElementById(id);
+      let examples = {};
+      let images = [];
+
+      function requestBody() {
+        return {
+          model: "jeff",
+          orders: Number($("orders").value),
+          state: $("format").value === "json" ? JSON.parse($("state").value) : $("state").value,
+          questions: JSON.parse($("questions").value),
+          ...(images.length ? { images } : {}),
+        };
+      }
+
+      function updatePreview() {
+        try {
+          const body = requestBody();
+          if (body.images) body.images = body.images.map((image) => image.slice(0, 45) + "…");
+          $("request-preview").textContent = JSON.stringify(body, null, 2);
+        } catch {
+          $("request-preview").textContent = "質問を正しいJSON形式で入力してください。";
+        }
+      }
+
+      function setExample(name) {
+        document.querySelectorAll("[data-example]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.example === name));
+        });
+        $("format").value = "text";
+        $("state").value = examples[name].state;
+        $("questions").value = JSON.stringify(examples[name].questions, null, 2);
+        $("questions").scrollTop = 0;
+        $("orders").value = String(examples[name].orders || 1);
+        updatePreview();
+      }
+      document.querySelectorAll("[data-example]").forEach((button) => {
+        button.onclick = () => setExample(button.dataset.example);
+      });
+      for (const id of ["state", "questions", "format", "orders"]) $(id).addEventListener("input", updatePreview);
+
+      function displayImages() {
+        $("images").replaceChildren();
+        for (const source of images) {
+          const image = document.createElement("img");
+          image.src = source;
+          image.alt = "添付画像";
+          $("images").append(image);
+        }
+        $("clear-images").classList.toggle("hidden", !images.length);
+        updatePreview();
+      }
+      $("clear-images").onclick = () => { images = []; $("files").value = ""; displayImages(); };
+      $("files").onchange = async (event) => {
+        try {
+          const files = Array.from(event.target.files);
+          if (files.length > 4) throw Error("画像は4枚までです。");
+          if (files.some((file) => file.size > 8000000)) throw Error("画像は1枚8MBまでです。");
+          images = await Promise.all(files.map((file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(Error("画像を読み込めませんでした。"));
+            reader.readAsDataURL(file);
+          })));
+          $("error").classList.add("hidden");
+        } catch (error) {
+          images = [];
+          $("files").value = "";
+          $("error").textContent = error.message;
+          $("error").classList.remove("hidden");
+        }
+        displayImages();
+      };
+
+      function element(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function render(answers) {
+        for (const [name, answer] of Object.entries(answers)) {
+          const question = requestBody().questions[name];
+          const labels = question.criteria || {};
+          const card = element("div", "result");
+          const heading = element("div", "result-title");
+          heading.append(element("h2", "", name), element("span", "badge", {choice:"選択", noul:"真偽", score:"スコア"}[answer.type] || answer.type));
+          card.append(heading);
+          let value = labels[answer.choice] || answer.choice;
+          if (answer.type === "noul") value = `${(answer.noul * 100).toFixed(1)}% はい`;
+          if (answer.type === "score") value = `${answer.score.toFixed(2)} / ${Object.keys(answer.legend).length - 1}`;
+          card.append(element("div", "result-value", value));
+          const probabilities = answer.probabilities || { "はい": answer.noul, "いいえ": 1 - answer.noul };
+          for (const [label, probability] of Object.entries(probabilities)) {
+            const row = element("div", "bar-row");
+            const labelNode = element("span", "bar-label", labels[label] || answer.legend?.[label] || label);
+            const description = answer.legend?.[label];
+            labelNode.title = description === undefined ? label : typeof description === "string" ? description : JSON.stringify(description);
+            const track = element("div", "track");
+            const fill = element("div", "fill");
+            fill.style.width = `${Math.max(0, Math.min(1, probability)) * 100}%`;
+            track.append(fill);
+            row.append(labelNode, track, element("span", "percentage", `${(probability * 100).toFixed(1)}%`));
+            card.append(row);
+          }
+          if (answer.confidence !== undefined) card.append(element("div", "confidence", `確信度 ${(answer.confidence * 100).toFixed(1)}%`));
+          $("results").append(card);
+        }
+      }
+
+      $("form").onsubmit = async (event) => {
+        event.preventDefault();
+        $("run").disabled = true;
+        $("run").textContent = "判定中…";
+        $("error").classList.add("hidden");
+        $("empty").classList.add("hidden");
+        $("results").replaceChildren();
+        $("raw-section").classList.add("hidden");
+        const started = performance.now();
+        try {
+          const body = requestBody();
+          const headers = { "Content-Type": "application/json" };
+          if ($("key").value) headers.Authorization = `Bearer ${$("key").value}`;
+          const response = await fetch("/v1/systemone", { method: "POST", headers, body: JSON.stringify(body) });
+          const responseText = await response.text();
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch {
+            throw Error(response.ok ? "サーバーの応答形式が不正です。" : `判定に失敗しました（${response.status}）。再度お試しください。`);
+          }
+          if (!response.ok) {
+            if (response.status === 401) $("auth-field").classList.remove("hidden");
+            const reasons = {401:"APIキーを確認してください。", 413:"入力が大きすぎます。32KiB以内にしてください。", 422:"質問の形式・選択肢・モデル名を確認してください。画像入力は使用できません。", 503:"モデルの準備状態またはGPUメモリを確認してください。", 529:"別の判定を実行中です。少し待って再実行してください。"};
+            throw Error(reasons[response.status] || `判定に失敗しました（${response.status}）。`);
+          }
+          render(data.answers);
+          $("raw").textContent = JSON.stringify(data, null, 2);
+          $("raw-section").classList.remove("hidden");
+          $("latency").textContent = `${Math.round(performance.now() - started)} ms · ${data.usage.input_tokens} 入力トークン`;
+        } catch (error) {
+          $("error").textContent = error instanceof SyntaxError ? "質問を正しいJSON形式で入力してください。" : error instanceof TypeError ? "サーバーへの接続または応答を確認してください。" : error.message;
+          $("error").classList.remove("hidden");
+          $("latency").textContent = "判定失敗";
+        } finally {
+          $("run").disabled = false;
+          $("run").textContent = "判定する";
+        }
+      };
+      $("copy").onclick = async () => {
+        try {
+          await navigator.clipboard.writeText($("raw").textContent);
+          $("copy").textContent = "コピーしました";
+          setTimeout(() => { $("copy").textContent = "応答をコピー"; }, 1500);
+        } catch { $("copy").textContent = "応答を選択してコピーしてください"; }
+      };
+      fetch("/testjeff/examples").then((response) => response.json()).then((rows) => {
+        for (const [index, row] of rows.entries()) {
+          examples[index] = row.request;
+          const button = element("button", "", row.name);
+          button.dataset.example = String(index);
+          button.onclick = () => setExample(String(index));
+          $("samples").append(button);
+        }
+        setExample("0");
+      }).catch(() => { $("error").textContent = "サンプルを読み込めませんでした。画面を再読み込みしてください。"; $("error").classList.remove("hidden"); });
+      fetch("/health").then((response) => response.json()).then((data) => {
+        $("status").dataset.state = data.status;
+        $("status").textContent = data.status === "ready" ? "準備完了" : "読み込み中";
+        $("auth-field").classList.toggle("hidden", !data.authentication);
+      }).catch(() => { $("status").textContent = "接続できません"; });
+    </script>
+  </body>
+</html>
