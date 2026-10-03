@@ -136,10 +136,9 @@ async function evaluate(accumulate = false) {
   if (running || !ready) return;
   showError();
   let requests;
-  const runModel = selectedModel, runTarget = $('target').value, runId = crypto.randomUUID(), timings = [], probabilities = [];
+  const runModel = selectedModel, runTarget = $('target').value.trim(), runId = crypto.randomUUID(), timings = [], probabilities = [];
   try {
-    if (!targets.includes($('target').value)) throw new Error('質問は分類名から選んでください。');
-    requests = rows.map(row => ({...NounCore.makeRequest($('target').value, row.input.value), model:MODEL_NAMES[runModel]}));
+    requests = rows.map(row => ({...NounCore.makeRequest(runTarget, row.input.value), model:MODEL_NAMES[runModel]}));
   }
   catch (error) {showError(error.message); return;}
   clearResults(); setBusy(true); controller = new AbortController();
@@ -238,8 +237,8 @@ $('model-select').onchange = async () => {
     if (!targetResponse.ok) throw new Error('分類名を読み込めませんでした。');
     targets = await targetResponse.json();
     if (!Array.isArray(targets) || !targets.length || !targets.every(x => typeof x === 'string' && x)) throw new Error('分類名の形式が不正です。');
-    $('target').replaceChildren();
-    for (const word of targets) {const option = document.createElement('option'); option.value = word; option.textContent = word; $('target').append(option);}
+    $('target-list').replaceChildren();
+    for (const word of targets) {const option = document.createElement('option'); option.value = word; $('target-list').append(option);}
     $('target').value = '動物';
     const options = document.createDocumentFragment();
     for (const word of words) {const option = document.createElement('option'); option.value = word; options.append(option);}

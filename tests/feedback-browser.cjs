@@ -31,7 +31,7 @@ const root=path.join(__dirname,'..'), live=process.env.LIVE_URL;
     });
     await page.goto((live||'http://127.0.0.1:8767')+'/nouns');
     await page.locator('#random:not([disabled])').waitFor();
-    await page.locator('#target').selectOption('道具');
+    await page.locator('#target').fill('道具');
     await page.locator('#rows input').first().fill('一年');
     await page.locator('#rows input').nth(1).fill('金槌');
     await page.locator('#evaluate').click();

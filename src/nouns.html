@@ -35,7 +35,8 @@
     <div class="stats" aria-label="サーバー使用量"><div title="サーバープロセスの物理メモリ使用量">メモリ<strong id="resource-memory">取得中</strong></div><div title="本ツールのPyTorchが使用中のGPUメモリ。ドライバー等は含みません">GPUメモリ（使用）<strong id="resource-gpu">取得中</strong></div><div title="使用中の領域と再利用用キャッシュを含むPyTorchの確保量。使用量とは加算しません">GPUメモリ（確保）<strong id="resource-reserved">取得中</strong></div><div title="サーバープロセスのCPU時間増分。全論理CPUの合計を100%として計算">CPU使用率<strong id="resource-cpu">取得中</strong></div></div>
     <div class="controls">
       <div class="model-line"><label for="model-select">モデル</label><select id="model-select" disabled><option value="qwen-0.8b">Qwen 0.8B</option><option value="qwen-2b">Qwen 2B</option><option value="gemma-e2b">Gemma E2B</option></select></div>
-      <div class="question"><span>これは</span><select id="target" aria-label="質問する名詞" disabled><option value="動物">動物</option></select><span>ですか？</span></div>
+      <div class="question"><span>これは</span><input id="target" aria-label="質問する名詞" list="target-list" maxlength="80" value="動物" disabled><span>ですか？</span></div>
+      <datalist id="target-list"></datalist>
       <datalist id="noun-list"></datalist>
       <div class="actions"><button class="primary" id="random" disabled>ランダム生成</button><button id="evaluate" disabled>評価する</button><button id="cancel" class="hidden">中止</button><span id="progress" role="status" aria-live="polite">準備中</span></div>
       <div id="auth" class="auth hidden"><label for="key">APIキー</label><input id="key" type="password" autocomplete="off"></div>
