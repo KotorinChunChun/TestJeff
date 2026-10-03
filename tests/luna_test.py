@@ -1,6 +1,7 @@
 """CLIのモデル固定・失敗・排他・真偽型を、外部通信なしで確認する。"""
 import json
 import sys
+import subprocess
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -41,6 +42,18 @@ class LunaTest(unittest.TestCase):
         with luna.LOCK:
             with self.assertRaises(BlockingIOError):
                 luna.classify(body)
+
+    def test_timeout(self):
+        process = Mock(pid=123)
+        process.communicate.side_effect = [subprocess.TimeoutExpired('codex', 90), ('', '')]
+        with patch('luna.executable', return_value='codex.exe'), \
+             patch('luna.subprocess.Popen', return_value=process), \
+             patch('luna.subprocess.run') as terminate:
+            with self.assertRaises(TimeoutError):
+                luna.classify(luna.LunaInput(target='動物', candidate='犬'))
+            if sys.platform == 'win32':
+                self.assertEqual(terminate.call_args.args[0], ['taskkill', '/PID', '123', '/T', '/F'])
+            self.assertFalse(luna.LOCK.locked())
 
 
 if __name__ == '__main__':

@@ -1,0 +1,348 @@
+{
+  "record": {
+    "run": {
+      "id": "39ab871f-9faa-49e3-af3e-86106ae0a4d6",
+      "at": "2026-10-03T15:42:23.279Z",
+      "target": "持ち運べる物",
+      "candidates": [
+        "犬",
+        "猫",
+        "馬",
+        "象",
+        "イルカ",
+        "りんご",
+        "椅子",
+        "自転車",
+        "鉛筆",
+        "雨"
+      ],
+      "order": [
+        "qwen-0.8b",
+        "qwen-2b",
+        "gemma-e2b",
+        "gpt-5.6-luna"
+      ],
+      "results": {
+        "qwen-0.8b": [
+          {
+            "probability": 0.6663042704048318,
+            "ms": 42.5
+          },
+          {
+            "probability": 0.5431124729845664,
+            "ms": 48.5
+          },
+          {
+            "probability": 0.5,
+            "ms": 46
+          },
+          {
+            "probability": 0.44262732736386873,
+            "ms": 42.19999999925494
+          },
+          {
+            "probability": 0.44262732736386873,
+            "ms": 43
+          },
+          {
+            "probability": 0.6533710153920064,
+            "ms": 43.69999999925494
+          },
+          {
+            "probability": 0.37317083041841803,
+            "ms": 52.399999998509884
+          },
+          {
+            "probability": 0.7270386598396701,
+            "ms": 46.399999998509884
+          },
+          {
+            "probability": 0.7383239425227677,
+            "ms": 43
+          },
+          {
+            "probability": 0.3466287656613817,
+            "ms": 43.399999998509884
+          }
+        ],
+        "qwen-2b": [
+          {
+            "probability": 0.5682108571592229,
+            "ms": 51
+          },
+          {
+            "probability": 0.5816296339035034,
+            "ms": 50.19999999925494
+          },
+          {
+            "probability": 0.45890963077545166,
+            "ms": 41.80000000074506
+          },
+          {
+            "probability": 0.3919106125831604,
+            "ms": 44.100000001490116
+          },
+          {
+            "probability": 0.40507153883789593,
+            "ms": 42.19999999925494
+          },
+          {
+            "probability": 0.8723487464033628,
+            "ms": 44.69999999925494
+          },
+          {
+            "probability": 0.4862757921218872,
+            "ms": 47.19999999925494
+          },
+          {
+            "probability": 0.7795343399047852,
+            "ms": 46.30000000074506
+          },
+          {
+            "probability": 0.8596112728118896,
+            "ms": 42.19999999925494
+          },
+          {
+            "probability": 0.4453085660934448,
+            "ms": 42.899999998509884
+          }
+        ],
+        "gemma-e2b": [
+          {
+            "probability": 0.40164874200966183,
+            "ms": 44.600000001490116
+          },
+          {
+            "probability": 0.27878254652023315,
+            "ms": 43.70000000298023
+          },
+          {
+            "probability": 0.4617479122726865,
+            "ms": 44.100000001490116
+          },
+          {
+            "probability": 0.20104590657490212,
+            "ms": 47.100000001490116
+          },
+          {
+            "probability": 0.07922491667344918,
+            "ms": 52.099999997764826
+          },
+          {
+            "probability": 0.8592448914501135,
+            "ms": 45.69999999925494
+          },
+          {
+            "probability": 0.7989540934250978,
+            "ms": 45.099999997764826
+          },
+          {
+            "probability": 0.7622653586685073,
+            "ms": 44.900000002235174
+          },
+          {
+            "probability": 0.8800603747367859,
+            "ms": 46.19999999925494
+          },
+          {
+            "probability": 0.08741536997006447,
+            "ms": 52.899999998509884
+          }
+        ],
+        "gpt-5.6-luna": [
+          {
+            "verdict": false,
+            "ms": 3777.5,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 3758.5733000014443,
+            "usage": {
+              "input_tokens": 14035,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 56,
+              "reasoning_output_tokens": 38
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 3762.60000000149,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 3742.9907000005187,
+            "usage": {
+              "input_tokens": 14035,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 2814.099999997765,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 2786.975600000005,
+            "usage": {
+              "input_tokens": 14035,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": false,
+            "ms": 4624.5,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 4604.472499999247,
+            "usage": {
+              "input_tokens": 14035,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 63,
+              "reasoning_output_tokens": 45
+            }
+          },
+          {
+            "verdict": false,
+            "ms": 3150,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 3129.1043999990507,
+            "usage": {
+              "input_tokens": 14036,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 4963.099999997765,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 4936.748700001772,
+            "usage": {
+              "input_tokens": 14037,
+              "cached_input_tokens": 13056,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 4074.5,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 4046.3788000015484,
+            "usage": {
+              "input_tokens": 14037,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 3344,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 3316.648299998633,
+            "usage": {
+              "input_tokens": 14037,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 9348.099999997765,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 9311.527599998954,
+            "usage": {
+              "input_tokens": 14037,
+              "cached_input_tokens": 0,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          },
+          {
+            "verdict": true,
+            "ms": 4014,
+            "source": "Codex CLI",
+            "reasoning": "low",
+            "cli_ms": 3984.4544999978098,
+            "usage": {
+              "input_tokens": 14035,
+              "cached_input_tokens": 13056,
+              "cache_write_input_tokens": 0,
+              "output_tokens": 16,
+              "reasoning_output_tokens": 0
+            }
+          }
+        ]
+      },
+      "loads": {
+        "qwen-0.8b": 2258.39999999851,
+        "qwen-2b": 4025.199999999255,
+        "gemma-e2b": 7328.39999999851
+      },
+      "memory": {
+        "qwen-0.8b": 1.748046875,
+        "qwen-2b": 4.267578125,
+        "gemma-e2b": 8.720703125
+      },
+      "revisions": {
+        "qwen-0.8b": "51552f39a943d62e8387c4ea5e17026a1408729f",
+        "qwen-2b": "00448e884cce9e34396d8c72e9a692b41383b1ee",
+        "gemma-e2b": "e3de3e99a979f92afd995d4e526c7e3170ae49cf"
+      },
+      "status": "完了"
+    },
+    "statistics": {
+      "runs": 1,
+      "agreement": 5,
+      "models": {
+        "qwen-0.8b": {
+          "count": 10,
+          "totalMs": 451.09999999403954,
+          "yes": 6,
+          "probabilitySum": 5.433204611951379,
+          "wins": 3
+        },
+        "qwen-2b": {
+          "count": 10,
+          "totalMs": 452.5999999977648,
+          "yes": 5,
+          "probabilitySum": 5.848810990594604,
+          "wins": 4
+        },
+        "gemma-e2b": {
+          "count": 10,
+          "totalMs": 466.4000000022352,
+          "yes": 4,
+          "probabilitySum": 4.810390112301502,
+          "wins": 3
+        },
+        "gpt-5.6-luna": {
+          "count": 10,
+          "totalMs": 43872.399999994785,
+          "yes": 7,
+          "probabilitySum": 0,
+          "wins": 0
+        }
+      }
+    }
+  },
+  "errors": []
+}

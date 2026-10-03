@@ -15,6 +15,7 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
     if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
     if(url.pathname==='/testjeff/status')return route.fulfill({json:{selected,ready:true,reserved_gib:2}});
     if(url.pathname==='/testjeff/model'){selected=req.postDataJSON().model;return route.fulfill({json:{selected,ready:true,revision:'試験'}});}
+    if(url.pathname==='/testjeff/luna'&&mode==='luna-error')return route.fulfill({status:503,json:{detail:'Luna試験エラー'}});
     if(url.pathname==='/testjeff/luna')return route.fulfill({json:{model:'gpt-5.6-luna',verdict:true,source:'Codex CLI',duration_ms:10,reasoning:'low'}});
     if(url.pathname==='/v1/systemone'){
       await new Promise(r=>setTimeout(r,mode==='slow'?250:10));
@@ -46,6 +47,7 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
     const before=calls.length;await page.locator('#target').fill(' ');await page.locator('#start').click();assert.equal(calls.length,before);
     await page.locator('#target').fill('道具');mode='slow';await page.locator('#start').click();await page.locator('#stop').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('中止'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
     mode='error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('失敗'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
+    mode='luna-error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#error').textContent()).includes('Luna試験エラー'));assert.equal(await page.locator('.result').count(),30);assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
     mode='normal';const offset=switches.length;await page.locator('#random').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了');assert.equal(switches[offset],'qwen-2b');assert((await page.locator('#cumulative').textContent()).includes('累積 2回'));
   }
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.json`),JSON.stringify({record,errors},null,2));

@@ -26,4 +26,5 @@
 | フィードバック記録 | src/feedback.py、tests/feedback_test.py、tests/feedback-browser.cjs、dev/history/v0.4.0/v0.4.0-imp.md |
 | 使用量表示 | src/resources.py、tests/resources_test.py、tests/resources-browser.cjs、dev/history/v0.5.0/v0.5.0-imp.md |
 | モデル対戦 | src/battle.html、src/battle.js、src/battle-core.js、tests/battle.test.cjs、tests/battle-browser.cjs、dev/history/v0.6.0/v0.6.0-imp.md |
+| Codex CLI比較 | src/luna.py、src/luna-schema.json、tests/luna_test.py、dev/history/v0.7.0/v0.7.0-imp.md |
 | 配布 | dev/RELEASE_RULE.md |
