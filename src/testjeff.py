@@ -13,6 +13,7 @@ import time
 import urllib.error
 import urllib.request
 from feedback import Feedback, FeedbackStore
+from resources import ResourceMeter
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -109,6 +110,12 @@ def serve(name: str, port: int, device: str) -> None:
             server.service.model = None
 
     server.app.router.lifespan_context = local_lifespan
+    resource_meter = ResourceMeter()
+
+    @server.app.get('/testjeff/resources', dependencies=[Depends(server.authenticate)])
+    def resources():
+        return resource_meter.sample(torch, device)
+
     feedback_store = FeedbackStore(Path(os.environ.get('TESTJEFF_FEEDBACK_PATH', str(ROOT / 'dev/feedback/ratings.sqlite3'))))
 
     @server.app.post('/testjeff/feedback', dependencies=[Depends(server.authenticate)])

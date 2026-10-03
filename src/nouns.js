@@ -6,6 +6,27 @@ const STORAGE_KEY = 'testjeff-nouns-stats-v1';
 let statistics = loadStatistics();
 const rows = [];
 
+function renderResources(data) {
+  const size = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? `${(value / 2**30).toFixed(2)} GiB` : '取得不可';
+  $('resource-memory').textContent = size(data?.memory_bytes);
+  $('resource-gpu').textContent = data?.device === 'cpu' ? '未使用' : size(data?.gpu_allocated_bytes);
+  $('resource-reserved').textContent = data?.device === 'cpu' ? '未使用' : size(data?.gpu_reserved_bytes);
+  $('resource-cpu').textContent = typeof data?.cpu_percent === 'number' && Number.isFinite(data.cpu_percent) ? `${data.cpu_percent.toFixed(1)}%` : data ? '計測中' : '取得不可';
+}
+async function pollResources() {
+  try {
+    if (!document.hidden) {
+      const headers = {};
+      if ($('key').value) headers.Authorization = `Bearer ${$('key').value}`;
+      const response = await fetch('/testjeff/resources', {headers, cache:'no-store', signal:AbortSignal.timeout(5000)});
+      if (!response.ok) throw new Error('取得失敗');
+      renderResources(await response.json());
+    }
+  } catch {renderResources(null);}
+  finally {setTimeout(pollResources, 2000);}
+}
+pollResources();
+
 function loadStatistics() {
   try {
     const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'), valid = {};
