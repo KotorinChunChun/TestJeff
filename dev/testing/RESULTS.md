@@ -1,5 +1,17 @@
 # 実機検証結果
 
+## 日本語の日常サンプルへの更新（2026-10-03）
+
+ユーザー依頼によりtests/requests.jsonを、雨の日の外出・帰り道の買い物・洗濯後のひと言・鍵探しの4件へ置き換えた。状況・質問・選択肢は日本語、APIフィールド名は仕様どおり維持。READMEの呼び出し例も雨の日の外出へ更新した。
+専用.venvで `src/testjeff.py verify --all --port 8766` を実行。8765番の起動中サーバーは保持した。
+3モデルとも正常4リクエスト、不正入力3件の検証に成功し、4件の選択すべてが期待値と一致（合計12/12）。洗濯完了の確率は0.930〜0.995、気持ちのスコアは0〜2段階で1.852〜1.972だった。
+今回の入力と実測値は [measurements-daily-ja.json](measurements-daily-ja.json) にまとめて保存した。単純な動作確認サンプルであり、実務精度を示す評価ではない。
+公式ブラウザー画面に組み込まれた上流の英語プリセットは変更していない。日本語サンプルを画面へ入力する手順はREADMEに記載した。
+
+## 初回の英語・日本語混在サンプルによる実測
+
+以下は変更前の記録。入力はコミット2e30ec7のtests/requests.json、測定値はmeasurements.jsonに対応する。
+
 測定日: 2026-10-03（日本時間）。Windows、RAM約64GB、NVIDIA GeForce RTX 5070 Ti / VRAM 16303MiB、ドライバー610.62。
 Python 3.12.10専用.venv、torch 2.14.0+cu130、torchvision 0.29.0+cu130、transformers 5.17.0。
 上流: https://github.com/firelex/jeff、コミット d0173b4ee317a46dee031421b713f3fc5f868cfe。モデルSHAはmodels.jsonに固定。
@@ -35,7 +47,7 @@ Jevの外部サービスとの同一出力比較は行っておらず、JeffのJ
 
 ## 証跡と再現
 
-固定リクエスト: tests/requests.json。追跡する測定値: dev/testing/measurements.json。実機依存一覧: dev/testing/environment.txt。
+初回リクエスト: コミット2e30ec7のtests/requests.json。初回測定値: dev/testing/measurements.json。実機依存一覧: dev/testing/environment.txt。現行の日本語サンプルと結果は冒頭の更新記録を参照。
 生JSON・起動ログはGit対象外のdev/testing/outputに保存。READMEのverifyコマンドで再測定できる。
 
 ## 初期化・登録

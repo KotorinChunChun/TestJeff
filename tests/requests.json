@@ -1,6 +1,94 @@
 [
-  {"name":"英語の画面選択", "expected_choice":"1", "request":{"model":"jeff-latest","state":{"voice_transcript":"Open the inbox","current_screen":"Home"},"questions":{"intent":{"type":"choice","instructions":"Which screen does the user want to open?","criteria":{"1":"Inbox","2":"Settings","3":"Calendar"}}}}},
-  {"name":"日本語の画面選択", "expected_choice":"2", "request":{"model":"jeff-latest","state":{"発話":"設定画面を開いてください","現在の画面":"ホーム"},"questions":{"intent":{"type":"choice","instructions":"ユーザーが開きたい画面はどれですか。","criteria":{"1":"受信トレイ","2":"設定","3":"カレンダー"}}}}},
-  {"name":"真偽・スコア・選択の複数質問", "request":{"model":"jeff-latest","state":"The customer says: Thank you, the problem is completely solved and I am very happy.","questions":{"resolved":{"type":"noul","instructions":"Is the problem solved?"},"sentiment":{"type":"score","instructions":"How positive is the customer's message?","criteria":["Very negative","Neutral","Very positive"]},"intent":{"type":"choice","instructions":"What is the customer doing?","criteria":{"1":"Thanking support","2":"Reporting a new failure"}}}}},
-  {"name":"選択肢順序反転平均", "expected_choice":"1", "request":{"model":"jeff-latest","orders":2,"state":"Please open my inbox.","questions":{"intent":{"type":"choice","instructions":"Choose the requested screen.","criteria":{"1":"Inbox","2":"Calendar"}}}}}
+  {
+    "name": "雨の日の外出",
+    "expected_choice": "1",
+    "request": {
+      "model": "jeff-latest",
+      "state": "これから歩いて近所のスーパーに行きます。外は雨が降っています。玄関には傘、サングラス、本があります。",
+      "questions": {
+        "intent": {
+          "type": "choice",
+          "instructions": "雨にぬれないために、持っていくものを選んでください。",
+          "criteria": {
+            "1": "傘",
+            "2": "サングラス",
+            "3": "本"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "帰り道の買い物",
+    "expected_choice": "2",
+    "request": {
+      "model": "jeff-latest",
+      "state": "仕事から帰る途中、家族から「明日の朝に飲む牛乳がなくなったので、帰りに買ってきて」と連絡がありました。パンと卵は家にあります。",
+      "questions": {
+        "intent": {
+          "type": "choice",
+          "instructions": "家族に頼まれた買い物はどれですか。",
+          "criteria": {
+            "1": "パンを買う",
+            "2": "牛乳を買う",
+            "3": "卵を買う"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "洗濯物が乾いた日のひと言",
+    "expected_choice": "1",
+    "request": {
+      "model": "jeff-latest",
+      "state": "朝に干した洗濯物が夕方には全部乾きました。取り込んで畳み、たんすにしまいました。「今日の洗濯が全部終わって、すっきりしてうれしい」と話しています。",
+      "questions": {
+        "resolved": {
+          "type": "noul",
+          "instructions": "今日の洗濯は、干すところから片付けるところまで終わっていますか。",
+          "criteria": {
+            "false": "まだ終わっていない",
+            "true": "全部終わっている"
+          }
+        },
+        "sentiment": {
+          "type": "score",
+          "instructions": "この人が話している気持ちに最も近い段階を選んでください。",
+          "criteria": [
+            "不満で、気分がよくない",
+            "うれしくも悲しくもない",
+            "満足して、うれしい"
+          ]
+        },
+        "intent": {
+          "type": "choice",
+          "instructions": "このひと言で伝えていることはどれですか。",
+          "criteria": {
+            "1": "家事が終わった喜び",
+            "2": "洗濯が終わらない困りごと"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "出かける前の鍵探し",
+    "expected_choice": "1",
+    "request": {
+      "model": "jeff-latest",
+      "orders": 2,
+      "state": "出かけようとしたら家の鍵が見当たりません。家族が「さっき玄関の棚の上に置いたよ」と教えてくれました。",
+      "questions": {
+        "intent": {
+          "type": "choice",
+          "instructions": "家族の話を手がかりに、最初に探す場所を選んでください。",
+          "criteria": {
+            "1": "玄関の棚の上",
+            "2": "冷蔵庫の中"
+          }
+        }
+      }
+    }
+  }
 ]

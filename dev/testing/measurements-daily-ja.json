@@ -1,0 +1,510 @@
+{
+  "date": "2026-10-03",
+  "fixtures": [
+    {
+      "name": "雨の日の外出",
+      "expected_choice": "1",
+      "request": {
+        "model": "jeff-latest",
+        "state": "これから歩いて近所のスーパーに行きます。外は雨が降っています。玄関には傘、サングラス、本があります。",
+        "questions": {
+          "intent": {
+            "type": "choice",
+            "instructions": "雨にぬれないために、持っていくものを選んでください。",
+            "criteria": {
+              "1": "傘",
+              "2": "サングラス",
+              "3": "本"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "帰り道の買い物",
+      "expected_choice": "2",
+      "request": {
+        "model": "jeff-latest",
+        "state": "仕事から帰る途中、家族から「明日の朝に飲む牛乳がなくなったので、帰りに買ってきて」と連絡がありました。パンと卵は家にあります。",
+        "questions": {
+          "intent": {
+            "type": "choice",
+            "instructions": "家族に頼まれた買い物はどれですか。",
+            "criteria": {
+              "1": "パンを買う",
+              "2": "牛乳を買う",
+              "3": "卵を買う"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "洗濯物が乾いた日のひと言",
+      "expected_choice": "1",
+      "request": {
+        "model": "jeff-latest",
+        "state": "朝に干した洗濯物が夕方には全部乾きました。取り込んで畳み、たんすにしまいました。「今日の洗濯が全部終わって、すっきりしてうれしい」と話しています。",
+        "questions": {
+          "resolved": {
+            "type": "noul",
+            "instructions": "今日の洗濯は、干すところから片付けるところまで終わっていますか。",
+            "criteria": {
+              "false": "まだ終わっていない",
+              "true": "全部終わっている"
+            }
+          },
+          "sentiment": {
+            "type": "score",
+            "instructions": "この人が話している気持ちに最も近い段階を選んでください。",
+            "criteria": [
+              "不満で、気分がよくない",
+              "うれしくも悲しくもない",
+              "満足して、うれしい"
+            ]
+          },
+          "intent": {
+            "type": "choice",
+            "instructions": "このひと言で伝えていることはどれですか。",
+            "criteria": {
+              "1": "家事が終わった喜び",
+              "2": "洗濯が終わらない困りごと"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "出かける前の鍵探し",
+      "expected_choice": "1",
+      "request": {
+        "model": "jeff-latest",
+        "orders": 2,
+        "state": "出かけようとしたら家の鍵が見当たりません。家族が「さっき玄関の棚の上に置いたよ」と教えてくれました。",
+        "questions": {
+          "intent": {
+            "type": "choice",
+            "instructions": "家族の話を手がかりに、最初に探す場所を選んでください。",
+            "criteria": {
+              "1": "玄関の棚の上",
+              "2": "冷蔵庫の中"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "models": [
+    {
+      "name": "qwen-0.8b",
+      "passed": true,
+      "load_seconds": 7.547416600000361,
+      "memory": {
+        "selected": "qwen-0.8b",
+        "device": "cuda",
+        "revision": "51552f39a943d62e8387c4ea5e17026a1408729f",
+        "allocated_gib": 1.6490111351013184,
+        "peak_allocated_gib": 1.677095890045166,
+        "reserved_gib": 1.748046875
+      },
+      "records": [
+        {
+          "case": "雨の日の外出",
+          "seconds": 0.4451781000007031,
+          "result": {
+            "model": "jeff-qwen3.5-0.8b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9334630540202469,
+                  "2": 0.05872302979470374,
+                  "3": 0.00781391618504944
+                },
+                "choice": "1",
+                "confidence": 0.9001945810303703
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "帰り道の買い物",
+          "seconds": 0.04589520000081393,
+          "result": {
+            "model": "jeff-qwen3.5-0.8b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.012162495449790714,
+                  "2": 0.9706511533657132,
+                  "3": 0.0171863511844961
+                },
+                "choice": "2",
+                "confidence": 0.9559767300485698
+              }
+            },
+            "usage": {
+              "input_tokens": 139,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "2",
+          "matches_expected": true
+        },
+        {
+          "case": "洗濯物が乾いた日のひと言",
+          "seconds": 0.132446899999195,
+          "result": {
+            "model": "jeff-qwen3.5-0.8b",
+            "answers": {
+              "resolved": {
+                "type": "noul",
+                "noul": 0.9375229899301568
+              },
+              "sentiment": {
+                "type": "score",
+                "probabilities": {
+                  "0": 0.01288658254251734,
+                  "1": 0.12195088537181194,
+                  "2": 0.8651625320856707
+                },
+                "legend": {
+                  "0": "不満で、気分がよくない",
+                  "1": "うれしくも悲しくもない",
+                  "2": "満足して、うれしい"
+                },
+                "score": 1.8522759495431533,
+                "confidence": 0.7784139243147301
+              },
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9970419763831134,
+                  "2": 0.002958023616886597
+                },
+                "choice": "1",
+                "confidence": 0.9940839527662269
+              }
+            },
+            "usage": {
+              "input_tokens": 415,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "出かける前の鍵探し",
+          "seconds": 0.08547449999969103,
+          "result": {
+            "model": "jeff-qwen3.5-0.8b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9873853825334957,
+                  "2": 0.012614617466504236
+                },
+                "choice": "1",
+                "confidence": 0.9747707650669915
+              }
+            },
+            "usage": {
+              "input_tokens": 252,
+              "output_tokens": 0,
+              "orders": 2
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        }
+      ],
+      "negative_checks": 3
+    },
+    {
+      "name": "qwen-2b",
+      "passed": true,
+      "load_seconds": 9.527610099999947,
+      "memory": {
+        "selected": "qwen-2b",
+        "device": "cuda",
+        "revision": "00448e884cce9e34396d8c72e9a692b41383b1ee",
+        "allocated_gib": 4.154728889465332,
+        "peak_allocated_gib": 4.183149337768555,
+        "reserved_gib": 4.26953125
+      },
+      "records": [
+        {
+          "case": "雨の日の外出",
+          "seconds": 0.4338102000001527,
+          "result": {
+            "model": "jeff-qwen3.5-2b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9508258753502324,
+                  "2": 0.02990227581878533,
+                  "3": 0.019271848830982197
+                },
+                "choice": "1",
+                "confidence": 0.9262388130253485
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "帰り道の買い物",
+          "seconds": 0.04432799999995041,
+          "result": {
+            "model": "jeff-qwen3.5-2b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.0027808356992330696,
+                  "2": 0.9905243834230035,
+                  "3": 0.00669478087776335
+                },
+                "choice": "2",
+                "confidence": 0.9857865751345053
+              }
+            },
+            "usage": {
+              "input_tokens": 139,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "2",
+          "matches_expected": true
+        },
+        {
+          "case": "洗濯物が乾いた日のひと言",
+          "seconds": 0.13689439999870956,
+          "result": {
+            "model": "jeff-qwen3.5-2b",
+            "answers": {
+              "resolved": {
+                "type": "noul",
+                "noul": 0.9296168823483122
+              },
+              "sentiment": {
+                "type": "score",
+                "probabilities": {
+                  "0": 0.0035859618795525206,
+                  "1": 0.07763710879810844,
+                  "2": 0.918776929322339
+                },
+                "legend": {
+                  "0": "不満で、気分がよくない",
+                  "1": "うれしくも悲しくもない",
+                  "2": "満足して、うれしい"
+                },
+                "score": 1.9151909674427865,
+                "confidence": 0.8727864511641797
+              },
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9990900037377981,
+                  "2": 0.0009099962622018618
+                },
+                "choice": "1",
+                "confidence": 0.9981800074755962
+              }
+            },
+            "usage": {
+              "input_tokens": 415,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "出かける前の鍵探し",
+          "seconds": 0.09437720000096306,
+          "result": {
+            "model": "jeff-qwen3.5-2b",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9766438553374808,
+                  "2": 0.023356144662519177
+                },
+                "choice": "1",
+                "confidence": 0.9532877106749615
+              }
+            },
+            "usage": {
+              "input_tokens": 252,
+              "output_tokens": 0,
+              "orders": 2
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        }
+      ],
+      "negative_checks": 3
+    },
+    {
+      "name": "gemma-e2b",
+      "passed": true,
+      "load_seconds": 13.042971099999704,
+      "memory": {
+        "selected": "gemma-e2b",
+        "device": "cuda",
+        "revision": "e3de3e99a979f92afd995d4e526c7e3170ae49cf",
+        "allocated_gib": 8.656311988830566,
+        "peak_allocated_gib": 8.67205286026001,
+        "reserved_gib": 8.740234375
+      },
+      "records": [
+        {
+          "case": "雨の日の外出",
+          "seconds": 0.39890569999988656,
+          "result": {
+            "model": "jeff-gemma-4-e2b-it",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9796114737285468,
+                  "2": 0.017918279711573677,
+                  "3": 0.002470246559879449
+                },
+                "choice": "1",
+                "confidence": 0.9694172105928203
+              }
+            },
+            "usage": {
+              "input_tokens": 124,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "帰り道の買い物",
+          "seconds": 0.05316560000028403,
+          "result": {
+            "model": "jeff-gemma-4-e2b-it",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.009204770511240279,
+                  "2": 0.9879285771375456,
+                  "3": 0.0028666523512141267
+                },
+                "choice": "2",
+                "confidence": 0.9818928657063182
+              }
+            },
+            "usage": {
+              "input_tokens": 137,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "2",
+          "matches_expected": true
+        },
+        {
+          "case": "洗濯物が乾いた日のひと言",
+          "seconds": 0.13515250000091328,
+          "result": {
+            "model": "jeff-gemma-4-e2b-it",
+            "answers": {
+              "resolved": {
+                "type": "noul",
+                "noul": 0.9950362547535796
+              },
+              "sentiment": {
+                "type": "score",
+                "probabilities": {
+                  "0": 0.0002748482347396528,
+                  "1": 0.027322160312602393,
+                  "2": 0.972402991452658
+                },
+                "legend": {
+                  "0": "不満で、気分がよくない",
+                  "1": "うれしくも悲しくもない",
+                  "2": "満足して、うれしい"
+                },
+                "score": 1.9721281432179183,
+                "confidence": 0.9581922148268774
+              },
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9994902458934256,
+                  "2": 0.0005097541065743529
+                },
+                "choice": "1",
+                "confidence": 0.9989804917868512
+              }
+            },
+            "usage": {
+              "input_tokens": 422,
+              "output_tokens": 0,
+              "orders": 1
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        },
+        {
+          "case": "出かける前の鍵探し",
+          "seconds": 0.09150419999969017,
+          "result": {
+            "model": "jeff-gemma-4-e2b-it",
+            "answers": {
+              "intent": {
+                "type": "choice",
+                "probabilities": {
+                  "1": 0.9970398062085839,
+                  "2": 0.002960193791416078
+                },
+                "choice": "1",
+                "confidence": 0.9940796124171678
+              }
+            },
+            "usage": {
+              "input_tokens": 256,
+              "output_tokens": 0,
+              "orders": 2
+            }
+          },
+          "expected_choice": "1",
+          "matches_expected": true
+        }
+      ],
+      "negative_checks": 3
+    }
+  ]
+}

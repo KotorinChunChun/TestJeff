@@ -35,12 +35,12 @@ GPUメモリ不足時は小さいモデルを使うか、起動時に `--device 
 cd C:\develop\test\TestJeff
 $request = @{
   model = 'jeff-latest'
-  state = @{ 発話 = '設定画面を開いてください' }
+  state = '近所のスーパーに歩いて行きます。外は雨が降っています。玄関には傘、サングラス、本があります。'
   questions = @{
     intent = @{
       type = 'choice'
-      instructions = 'ユーザーが開きたい画面はどれですか。'
-      criteria = @{ '1' = '受信トレイ'; '2' = '設定'; '3' = 'カレンダー' }
+      instructions = '雨にぬれないために、持っていくものを選んでください。'
+      criteria = @{ '1' = '傘'; '2' = 'サングラス'; '3' = '本' }
     }
   }
 } | ConvertTo-Json -Depth 8
@@ -48,6 +48,17 @@ Invoke-RestMethod http://127.0.0.1:8765/v1/systemone -Method Post -ContentType '
 ```
 
 `choice`は選択肢ごとの確率、`noul`は真である確率、`score`は定義した段階のスコアを返します。文章を生成するチャットAPIではありません。`model: jeff-latest` は現在起動中のモデルを指し、このフィールドを書き換えるだけではベースモデルは切り替わりません。
+
+サンプルは [tests/requests.json](tests/requests.json) にあります。状況・質問・選択肢はすべて日本語です。APIのフィールド名と型名は規定のままです。
+
+| 場面 | 判定すること |
+|---|---|
+| 雨の日の外出 | 雨にぬれないために持っていくもの |
+| 帰り道の買い物 | 家族に頼まれた買い物 |
+| 洗濯物が乾いた日のひと言 | 洗濯が終わったか、気持ち、伝えていること |
+| 出かける前の鍵探し | 家族の話から最初に探す場所（順序反転も実施） |
+
+ブラウザーでは各サンプルの `request.state` を `Context`（Text）、`request.questions` のオブジェクトを `Questions · JSON` へ貼り付けて試せます。公式画面にもともと付いている英語のプリセットは上流提供のものです。本件の日本語サンプルは上記ファイルとsmoke/verifyで使用します。
 
 ## 再セットアップと検証
 
