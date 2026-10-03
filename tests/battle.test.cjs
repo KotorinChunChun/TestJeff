@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const core=require('../src/battle-core.js');
-const run={results:Object.fromEntries(core.models.map((m,j)=>[m.id,Array.from({length:10},(_,i)=>({ms:(j+1)*10,probability:j===2&&i===0?.1:.9}))]))};
+const run={results:Object.fromEntries(core.models.map((m,j)=>[m.id,Array.from({length:10},(_,i)=>({ms:(j+1)*10,...(m.cloud?{verdict:true}:{probability:j===2&&i===0?.1:.9})}))]))};
 assert.equal(core.summarize([{ms:10,probability:1},{ms:20,probability:0}]).median,15);
 assert.equal(core.compare(run).agreement,9);
 assert.equal(core.compare(run).wins['qwen-0.8b'],10);

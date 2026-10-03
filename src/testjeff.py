@@ -14,6 +14,7 @@ import urllib.error
 import urllib.request
 from feedback import Feedback, FeedbackStore
 from resources import ResourceMeter
+from luna import LunaInput, classify
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -111,6 +112,19 @@ def serve(name: str, port: int, device: str) -> None:
 
     server.app.router.lifespan_context = local_lifespan
     resource_meter = ResourceMeter()
+
+    @server.app.post('/testjeff/luna', dependencies=[Depends(server.authenticate)])
+    def luna(body: LunaInput):
+        try:
+            return classify(body)
+        except BlockingIOError as error:
+            raise HTTPException(409, str(error)) from error
+        except TimeoutError as error:
+            raise HTTPException(504, str(error)) from error
+        except RuntimeError as error:
+            raise HTTPException(503, str(error)) from error
+        except Exception as error:
+            raise HTTPException(502, 'Lunaの応答を検証できませんでした。') from error
 
     @server.app.get('/testjeff/resources', dependencies=[Depends(server.authenticate)])
     def resources():
