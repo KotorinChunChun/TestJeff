@@ -162,6 +162,7 @@ def serve(name: str, port: int, device: str) -> None:
 
     @server.app.post('/testjeff/photos', dependencies=[Depends(server.authenticate)])
     def photos(body: PhotoInput, http_request: Request):
+        processing_started = time.perf_counter()
         remote = FDS.from_request(http_request)
         try:
             source = body.image
@@ -190,6 +191,7 @@ def serve(name: str, port: int, device: str) -> None:
                 result['monochrome_probability'] = result['answers']['白黒']['noul']
                 result['is_monochrome'] = result['monochrome_probability'] >= 0.5
                 result['coverage_percent'] = int(result['answers']['看板面積']['choice'])
+            result['server_processing_ms'] = (time.perf_counter() - processing_started) * 1000
             result['record_id'] = image_store.save(body.mode, filename if body.sample_id else body.filename, picture, result)
             if body.sample_id and body.mode == 'photos':
                 result.update(sample_id=body.sample_id, filename=filename, sha256=digest)
