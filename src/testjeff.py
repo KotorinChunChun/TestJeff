@@ -17,6 +17,7 @@ from resources import ResourceMeter
 from luna import LunaInput, classify
 from photos import PhotoInput, PhotoPrompts, PhotoSamples, prepare_image, questions as photo_questions
 from knowledge import Evaluation, KnowledgeStore
+from image_store import ImageStore, classification_questions, classification_result
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -130,6 +131,13 @@ def serve(name: str, port: int, device: str) -> None:
         return JSONResponse(knowledge_store.export(), headers={'Content-Disposition':'attachment; filename="quality-knowledge.json"'})
 
     photo_samples = PhotoSamples(ROOT / 'dev/image', ROOT / 'dev/feedback/photo-samples')
+    image_store = ImageStore(ROOT / 'dev/feedback/images.sqlite3')
+
+    @server.app.get('/testjeff/image-history', dependencies=[Depends(server.authenticate)])
+    def image_history(mode: str = 'photos', before: int = 0):
+        if mode not in ('photos', 'classification') or before < 0:
+            raise HTTPException(422, '履歴の指定が不正です。')
+        return {'rows':image_store.history(mode, before)}
 
     @server.app.get('/testjeff/photo-samples', dependencies=[Depends(server.authenticate)])
     def list_photo_samples():
@@ -158,15 +166,19 @@ def serve(name: str, port: int, device: str) -> None:
             if name != body.model or server.service.model is None:
                 raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
             request = server.EvaluationRequest(model=server.service.name, state='添付した1枚の画像を判定してください。',
-                                               images=[picture], questions=photo_questions(body.prompts))
+                                               images=[picture], questions=classification_questions() if body.mode == 'classification' else photo_questions(body.prompts))
             started = time.perf_counter()
             result = server.predict(server.service.model, request)
             result = {**result, 'source_size':source_size, 'input_size':input_size,
-                      'coverage_percent':int(result['answers']['看板面積']['choice']),
                       'response_ms':(time.perf_counter() - started) * 1000,
                       'prompts':body.prompts.model_dump(), 'revision':MODELS[body.model]['revision'],
                       'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
-            if body.sample_id:
+            if body.mode == 'classification':
+                result.update(classification_result(result['answers']))
+            else:
+                result['coverage_percent'] = int(result['answers']['看板面積']['choice'])
+            result['record_id'] = image_store.save(body.mode, filename if body.sample_id else body.filename, picture, result)
+            if body.sample_id and body.mode == 'photos':
                 result.update(sample_id=body.sample_id, filename=filename, sha256=digest)
                 photo_samples.save(body.sample_id, result)
             return result
@@ -215,6 +227,11 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/battle', '/battle/'):
             return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path in ('/classification', '/classification/'):
+            html = (ROOT / 'src/photos.html').read_text(encoding='utf-8')
+            html = html.replace('文字風景判定', '画像分類', 2).replace('<body>', '<body class="classification">')
+            html = html.replace('<th>文字情報</th><th>風景</th><th>看板面積（推定）</th>', '<th>大分類</th><th>小分類</th><th>定義版</th>')
+            return HTMLResponse(html)
         if request.method == 'GET' and request.url.path in ('/photos', '/photos/'):
             return HTMLResponse((ROOT / 'src/photos.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/nouns':

@@ -1,0 +1,1014 @@
+{
+  "definition_version": "1.0.0",
+  "language": "ja",
+  "title": "画像分類定義表",
+  "description": "画像ファイルの整理に使う独自の分類定義。画像全体の種類と主な内容を別軸で指定する。特定モデルの公式分類や対応機能を示すものではない。",
+  "output_fields": {
+    "processing_status": {
+      "type": "string",
+      "required": true,
+      "allowed_values": [
+        "classified",
+        "read_error"
+      ],
+      "description": "classifiedは判定不能を含めた分類処理の完了、read_errorは画像の読み込み失敗を表す。"
+    },
+    "image_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "value_source": "image_types[].id",
+      "description": "画像全体の種類を一つ指定する。read_errorの場合だけnull。"
+    },
+    "primary_content": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": true,
+      "value_source": "content_groups[].categories[].id",
+      "description": "主な内容の分類IDを一つ指定する。read_errorの場合だけnull。"
+    },
+    "secondary_contents": {
+      "type": "array",
+      "item_type": "string",
+      "required": true,
+      "value_source": "content_groups[].categories[].id",
+      "unique_items": true,
+      "description": "副次的な内容の分類IDを指定する。主な内容と重複させない。該当がなければ空配列。"
+    },
+    "tags": {
+      "type": "array",
+      "item_type": "string",
+      "required": true,
+      "unique_items": true,
+      "description": "山、猫、領収書、表情差分など、画像で確認できる補助情報を自由記述する。該当がなければ空配列。"
+    }
+  },
+  "classification_rules": [
+    {
+      "id": "separate_axes",
+      "description": "image_typeは画像全体の種類、primary_contentは主な内容として、それぞれ独立に選ぶ。"
+    },
+    {
+      "id": "groups_are_organizational",
+      "description": "content_groupsは定義の整理用であり、image_typeごとの許可・禁止リストではない。たとえば写真・実写風画像の主な内容に帳票・伝票を選べる。"
+    },
+    {
+      "id": "visible_evidence",
+      "description": "画像から確認できる見た目と内容で分類する。画像のみで確定できない撮影方法、生成AIの使用、作者、人物の身元などは推測しない。"
+    },
+    {
+      "id": "specific_over_general",
+      "description": "主な内容に具体的な分類が当てはまるときは、それを広い分類より優先する。例として、湖が主役なら風景写真より水辺・水中写真、エラー表示が主役ならアプリ操作画面よりエラー・警告画面を選ぶ。"
+    },
+    {
+      "id": "dominant_content",
+      "description": "主要な内容は一つ選ぶ。補助的な内容はsecondary_contentsに指定し、primary_contentとの重複およびsecondary_contents内の重複を避ける。"
+    },
+    {
+      "id": "screen_context",
+      "description": "UIや画面構成が見えている場合、image_typeはスクリーンショットを候補とする。主な内容がWebページならprimary_contentをWebページ画面とし、ページ内の写真などは副次的な内容にできる。"
+    },
+    {
+      "id": "document_photo_boundary",
+      "description": "机、紙の縁、遠近感など撮影した場面が見える文書は、image_typeを写真・実写風、primary_contentを該当する文書分類にできる。文書だけが切り出され、取得方法が分からない場合は文書・資料として扱う。"
+    },
+    {
+      "id": "mixed_not_automatic",
+      "description": "複数の要素があるだけで複合画像にはしない。スライドや広告など、全体として明確な分類がある場合はその分類を優先する。"
+    },
+    {
+      "id": "other_vs_undetermined",
+      "description": "内容を理解できるが分類先がない場合はその他、情報不足で判断できない場合は判定不能を使う。"
+    },
+    {
+      "id": "blank_not_undetermined",
+      "description": "単色や空白であることを確認できた画像は、判定不能ではなく単色・空白画像とする。"
+    },
+    {
+      "id": "read_error_is_separate",
+      "description": "ファイル破損や非対応形式による読み込み失敗は画像分類に含めない。processing_statusをread_errorとし、image_typeとprimary_contentはnull、secondary_contentsとtagsは空配列にする。"
+    }
+  ],
+  "image_types": [
+    {
+      "id": "photo_realistic",
+      "label": "写真・実写風",
+      "description": "被写体や場面が写真のように見える画像。実写か、実写風の生成・合成画像かは区別しない。",
+      "examples": [
+        "風景写真",
+        "人物写真",
+        "机に置いた領収書の写真"
+      ]
+    },
+    {
+      "id": "screenshot",
+      "label": "スクリーンショット",
+      "description": "ウィンドウ、ボタン、メニューなどの画面表示が中心の画像。直接キャプチャしたか、画面を撮影したかは、この分類だけでは断定しない。",
+      "examples": [
+        "アプリ画面",
+        "Webページの画面",
+        "ゲーム画面"
+      ]
+    },
+    {
+      "id": "document_material",
+      "label": "文書・資料",
+      "description": "文章、表、図などによる情報伝達が中心で、文書や資料として見える画像。",
+      "examples": [
+        "スキャン文書",
+        "スライド画像",
+        "図面"
+      ]
+    },
+    {
+      "id": "illustration_cg",
+      "label": "イラスト・CG",
+      "description": "描画・造形された人物、物品、場面、作品が中心の画像。",
+      "examples": [
+        "キャラクターイラスト",
+        "漫画",
+        "3Dレンダリング"
+      ]
+    },
+    {
+      "id": "design_asset",
+      "label": "デザイン素材",
+      "description": "ロゴ、アイコン、広告、模様など、視覚的な表示・装飾に使うデザインが中心の画像。",
+      "examples": [
+        "ロゴ",
+        "バナー",
+        "テクスチャ"
+      ]
+    },
+    {
+      "id": "special_image",
+      "label": "特殊画像",
+      "description": "医療、科学観察、航空・衛星観測、センサー計測などの特殊な表現が中心の画像。",
+      "examples": [
+        "X線画像",
+        "顕微鏡画像",
+        "サーモグラフィー"
+      ]
+    },
+    {
+      "id": "mixed_image",
+      "label": "複合画像",
+      "description": "複数の画像種類が同程度の比重で混在し、全体の種類を一つに決めにくい画像。",
+      "examples": [
+        "写真と図面を同じ大きさで並べた画像",
+        "異なる種類の画像を集めたコラージュ"
+      ]
+    },
+    {
+      "id": "other",
+      "label": "その他",
+      "description": "内容は確認できるが、定義済みの画像種類に当てはまらない画像。",
+      "examples": [
+        "単色画像",
+        "空白画像"
+      ]
+    },
+    {
+      "id": "undetermined",
+      "label": "判定不能",
+      "description": "画像は読み込めたが、不鮮明さや情報不足のため全体の種類を判断できない画像。",
+      "examples": [
+        "極端にぼけた画像",
+        "内容を特定できない小さな切り抜き"
+      ]
+    }
+  ],
+  "content_groups": [
+    {
+      "id": "photo_contents",
+      "label": "写真・実写風画像",
+      "categories": [
+        {
+          "id": "photo_landscape",
+          "label": "風景写真",
+          "description": "自然の景色が主な被写体となっている写真・実写風画像。",
+          "examples": [
+            "山",
+            "森林",
+            "草原",
+            "田園",
+            "砂漠"
+          ]
+        },
+        {
+          "id": "photo_water",
+          "label": "水辺・水中写真",
+          "description": "水辺や水中の景色が中心の写真・実写風画像。",
+          "examples": [
+            "海",
+            "海岸",
+            "川",
+            "湖",
+            "滝",
+            "水中の景色"
+          ]
+        },
+        {
+          "id": "photo_sky_space",
+          "label": "空・天体写真",
+          "description": "空、雲、天体などが中心の写真・実写風画像。",
+          "examples": [
+            "青空",
+            "雲",
+            "夕焼け",
+            "星空",
+            "月",
+            "天体"
+          ]
+        },
+        {
+          "id": "photo_cityscape",
+          "label": "街並み・都市写真",
+          "description": "街路や建物の集まりなど、都市・集落の景観が中心の写真・実写風画像。",
+          "examples": [
+            "道路",
+            "商店街",
+            "住宅街",
+            "ビル群",
+            "都市の夜景"
+          ]
+        },
+        {
+          "id": "photo_architecture",
+          "label": "建物・建築物写真",
+          "description": "個々の建物や構造物の外観が中心の写真・実写風画像。",
+          "examples": [
+            "住宅",
+            "店舗",
+            "城",
+            "寺社",
+            "橋",
+            "塔"
+          ]
+        },
+        {
+          "id": "photo_interior",
+          "label": "室内・インテリア写真",
+          "description": "屋内空間や家具の配置が中心の写真・実写風画像。",
+          "examples": [
+            "部屋",
+            "オフィス",
+            "店舗内",
+            "家具の配置"
+          ]
+        },
+        {
+          "id": "photo_person",
+          "label": "人物写真",
+          "description": "一人または少数の人物の姿や顔が中心の写真・実写風画像。",
+          "examples": [
+            "顔写真",
+            "ポートレート",
+            "自撮り",
+            "全身写真"
+          ]
+        },
+        {
+          "id": "photo_group",
+          "label": "集合写真",
+          "description": "複数の人物が集まって写る記念写真・団体写真。",
+          "examples": [
+            "集合記念写真",
+            "団体写真",
+            "家族の集合写真"
+          ]
+        },
+        {
+          "id": "photo_event_activity",
+          "label": "行事・活動写真",
+          "description": "行事、催し、運動、会議、作業などの活動が中心の写真・実写風画像。",
+          "examples": [
+            "祭り",
+            "式典",
+            "ライブ",
+            "スポーツ",
+            "会議",
+            "作業中の様子"
+          ]
+        },
+        {
+          "id": "photo_animal",
+          "label": "動物写真",
+          "description": "動物が主な被写体となっている写真・実写風画像。",
+          "examples": [
+            "犬",
+            "猫",
+            "野生動物",
+            "鳥",
+            "魚",
+            "昆虫"
+          ]
+        },
+        {
+          "id": "photo_plant",
+          "label": "植物・花写真",
+          "description": "植物や植物の部分が主な被写体となっている写真・実写風画像。",
+          "examples": [
+            "花",
+            "樹木",
+            "葉",
+            "観葉植物",
+            "作物"
+          ]
+        },
+        {
+          "id": "photo_food_drink",
+          "label": "料理・飲み物写真",
+          "description": "食べ物、飲み物、盛り付けが中心の写真・実写風画像。",
+          "examples": [
+            "食事",
+            "菓子",
+            "果物",
+            "飲料",
+            "盛り付け"
+          ]
+        },
+        {
+          "id": "photo_product_daily_item",
+          "label": "商品・日用品写真",
+          "description": "一般的な商品や生活用品が中心の写真・実写風画像。",
+          "examples": [
+            "雑貨",
+            "食器",
+            "文房具",
+            "家具",
+            "商品パッケージ"
+          ]
+        },
+        {
+          "id": "photo_fashion",
+          "label": "衣類・ファッション写真",
+          "description": "衣類や服飾品が中心の写真・実写風画像。",
+          "examples": [
+            "服",
+            "靴",
+            "バッグ",
+            "帽子",
+            "アクセサリー"
+          ]
+        },
+        {
+          "id": "photo_electronics",
+          "label": "電子機器写真",
+          "description": "電子機器、家電、電子部品が中心の写真・実写風画像。",
+          "examples": [
+            "パソコン",
+            "スマートフォン",
+            "家電",
+            "基板",
+            "周辺機器"
+          ]
+        },
+        {
+          "id": "photo_machine_tool",
+          "label": "機械・道具写真",
+          "description": "工具、機械、産業設備やその部品が中心の写真・実写風画像。",
+          "examples": [
+            "工具",
+            "工作機械",
+            "産業設備",
+            "機械部品"
+          ]
+        },
+        {
+          "id": "photo_vehicle",
+          "label": "乗り物写真",
+          "description": "移動・輸送に使う乗り物が中心の写真・実写風画像。",
+          "examples": [
+            "自動車",
+            "鉄道",
+            "自転車",
+            "船",
+            "航空機"
+          ]
+        },
+        {
+          "id": "photo_art_hobby",
+          "label": "作品・趣味用品写真",
+          "description": "美術作品や趣味の道具・制作物そのものを被写体とした写真・実写風画像。",
+          "examples": [
+            "絵画を撮った写真",
+            "彫刻",
+            "模型",
+            "フィギュア",
+            "玩具",
+            "楽器"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "screen_contents",
+      "label": "スクリーンショット・画面画像",
+      "categories": [
+        {
+          "id": "screen_desktop_home",
+          "label": "デスクトップ・ホーム画面",
+          "description": "OSのデスクトップやモバイル端末のホーム画面。",
+          "examples": [
+            "パソコンのデスクトップ",
+            "スマートフォンのホーム画面"
+          ]
+        },
+        {
+          "id": "screen_application",
+          "label": "アプリ操作画面",
+          "description": "アプリケーションの通常の操作・編集画面。より具体的な画面分類に当てはまらないもの。",
+          "examples": [
+            "ソフトウェアの通常画面",
+            "編集画面",
+            "ファイル一覧"
+          ]
+        },
+        {
+          "id": "screen_settings",
+          "label": "設定画面",
+          "description": "OSやアプリケーションの設定内容を表示・変更する画面。",
+          "examples": [
+            "OS設定",
+            "アプリ設定",
+            "環境設定",
+            "権限設定"
+          ]
+        },
+        {
+          "id": "screen_webpage",
+          "label": "Webページ画面",
+          "description": "Webページや検索結果などの表示画面。チャットや業務画面など、より具体的な分類がある場合はそちらを優先する。",
+          "examples": [
+            "ニュースサイト",
+            "ブログ",
+            "検索結果",
+            "商品ページ"
+          ]
+        },
+        {
+          "id": "screen_communication",
+          "label": "チャット・SNS・メール画面",
+          "description": "会話、投稿、メールなどのコミュニケーション内容を表示する画面。",
+          "examples": [
+            "メッセージのやり取り",
+            "SNSの投稿一覧",
+            "メール本文"
+          ]
+        },
+        {
+          "id": "screen_source_code",
+          "label": "ソースコード画面",
+          "description": "プログラムのソースコードや変更差分を表示する画面。",
+          "examples": [
+            "コードエディター",
+            "プログラムの差分表示"
+          ]
+        },
+        {
+          "id": "screen_terminal_log",
+          "label": "ターミナル・ログ画面",
+          "description": "コマンド操作や処理ログが中心の画面。",
+          "examples": [
+            "コマンド実行結果",
+            "コンソール",
+            "処理ログ"
+          ]
+        },
+        {
+          "id": "screen_error_warning",
+          "label": "エラー・警告画面",
+          "description": "エラーや警告の表示が中心の画面。",
+          "examples": [
+            "エラーダイアログ",
+            "警告",
+            "クラッシュ表示"
+          ]
+        },
+        {
+          "id": "screen_game",
+          "label": "ゲーム画面",
+          "description": "ゲームのプレイ内容やゲーム内UIを表示する画面。",
+          "examples": [
+            "プレイ中の画面",
+            "ゲーム内メニュー",
+            "リザルト"
+          ]
+        },
+        {
+          "id": "screen_video_stream_meeting",
+          "label": "動画・配信・会議画面",
+          "description": "動画視聴、配信、オンライン会議などの画面。",
+          "examples": [
+            "動画プレーヤー",
+            "ライブ配信",
+            "オンライン会議"
+          ]
+        },
+        {
+          "id": "screen_business_data",
+          "label": "業務・データ管理画面",
+          "description": "業務システムやデータの閲覧・集計・管理を行う画面。",
+          "examples": [
+            "管理画面",
+            "ダッシュボード",
+            "表計算ソフト",
+            "監視画面"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "document_contents",
+      "label": "文書・文字・資料画像",
+      "categories": [
+        {
+          "id": "document_text",
+          "label": "文章中心の文書",
+          "description": "文章による情報伝達が中心の文書。",
+          "examples": [
+            "報告書",
+            "説明書",
+            "契約書",
+            "案内文",
+            "論文"
+          ]
+        },
+        {
+          "id": "document_publication",
+          "label": "書籍・新聞・雑誌ページ",
+          "description": "書籍、新聞、雑誌などのページや誌面。",
+          "examples": [
+            "本の本文ページ",
+            "新聞記事",
+            "雑誌の誌面"
+          ]
+        },
+        {
+          "id": "document_handwriting",
+          "label": "手書きメモ・ノート",
+          "description": "紙面などに書かれた手書きの記録やノート。",
+          "examples": [
+            "手書き文字",
+            "学習ノート",
+            "走り書き"
+          ]
+        },
+        {
+          "id": "document_board",
+          "label": "ホワイトボード・黒板",
+          "description": "ホワイトボード、黒板、付箋ボードなどにまとめた情報。",
+          "examples": [
+            "会議の板書",
+            "授業の板書",
+            "付箋を貼ったボード"
+          ]
+        },
+        {
+          "id": "document_table",
+          "label": "表・一覧表",
+          "description": "行列や一覧形式に整理した情報が中心の資料。",
+          "examples": [
+            "集計表",
+            "名簿",
+            "比較表",
+            "時間割",
+            "カレンダー"
+          ]
+        },
+        {
+          "id": "document_presentation",
+          "label": "プレゼンテーション資料",
+          "description": "発表や説明のために構成されたスライド形式の資料。",
+          "examples": [
+            "スライド",
+            "発表資料",
+            "説明用のページ"
+          ]
+        },
+        {
+          "id": "document_chart",
+          "label": "グラフ・チャート",
+          "description": "数値やデータの関係をグラフで可視化した資料。",
+          "examples": [
+            "棒グラフ",
+            "折れ線グラフ",
+            "円グラフ",
+            "散布図"
+          ]
+        },
+        {
+          "id": "document_diagram",
+          "label": "図解・構成図",
+          "description": "手順、構造、構成、関係などを図示した資料。",
+          "examples": [
+            "フローチャート",
+            "組織図",
+            "システム構成図",
+            "関係図"
+          ]
+        },
+        {
+          "id": "document_map",
+          "label": "地図・案内図",
+          "description": "場所、経路、施設の配置などを示した資料。",
+          "examples": [
+            "地図",
+            "路線図",
+            "経路図",
+            "施設案内図"
+          ]
+        },
+        {
+          "id": "document_drawing",
+          "label": "図面・設計図",
+          "description": "建築物、機械、回路などの設計・配置を表す図面。",
+          "examples": [
+            "間取り図",
+            "建築図面",
+            "機械図面",
+            "回路図"
+          ]
+        },
+        {
+          "id": "document_form_receipt",
+          "label": "帳票・伝票",
+          "description": "取引、申請、記録などに使う定型的な書式の文書。",
+          "examples": [
+            "レシート",
+            "領収書",
+            "請求書",
+            "注文書",
+            "申込書"
+          ]
+        },
+        {
+          "id": "document_card_ticket",
+          "label": "カード・証票",
+          "description": "カード状の情報媒体や資格・利用権などを示す証票。",
+          "examples": [
+            "名刺",
+            "会員証",
+            "身分証",
+            "チケット"
+          ]
+        },
+        {
+          "id": "document_sign_advertisement",
+          "label": "掲示物・印刷広告",
+          "description": "掲示、案内、広告、商品説明などのために構成された資料。",
+          "examples": [
+            "ポスター",
+            "チラシ",
+            "メニュー",
+            "看板",
+            "商品ラベル"
+          ]
+        },
+        {
+          "id": "document_notation",
+          "label": "楽譜・記譜資料",
+          "description": "音楽や対局などを記号・規則に従って記録した資料。",
+          "examples": [
+            "五線譜",
+            "タブ譜",
+            "棋譜"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "illustration_design_contents",
+      "label": "イラスト・漫画・デザイン画像",
+      "categories": [
+        {
+          "id": "illustration_person_character",
+          "label": "人物・キャラクターイラスト",
+          "description": "人物や人型キャラクターが中心のイラスト。",
+          "examples": [
+            "アニメ調の人物",
+            "キャラクター立ち絵",
+            "デフォルメキャラ"
+          ]
+        },
+        {
+          "id": "illustration_animal_mascot",
+          "label": "動物・マスコットイラスト",
+          "description": "動物、架空生物、マスコットが中心のイラスト。",
+          "examples": [
+            "動物の絵",
+            "架空生物",
+            "マスコット"
+          ]
+        },
+        {
+          "id": "illustration_landscape_background",
+          "label": "風景・背景イラスト",
+          "description": "自然、街、室内などの場面や背景を描いたイラスト。",
+          "examples": [
+            "街の背景画",
+            "自然の背景画",
+            "室内背景",
+            "ファンタジー背景"
+          ]
+        },
+        {
+          "id": "illustration_object",
+          "label": "物品イラスト",
+          "description": "食べ物、道具、乗り物などの物品が中心のイラスト。",
+          "examples": [
+            "食べ物の絵",
+            "道具の絵",
+            "乗り物の絵"
+          ]
+        },
+        {
+          "id": "illustration_painting_sketch",
+          "label": "絵画・スケッチ",
+          "description": "絵画やスケッチとしての表現が中心の画像。",
+          "examples": [
+            "水彩風",
+            "油彩風",
+            "鉛筆画",
+            "線画",
+            "ラフ"
+          ]
+        },
+        {
+          "id": "illustration_comic",
+          "label": "漫画・コミック",
+          "description": "コマや吹き出しなどで物語・やり取りを表す漫画画像。",
+          "examples": [
+            "コマ割り漫画",
+            "四コマ",
+            "吹き出し付きの場面"
+          ]
+        },
+        {
+          "id": "illustration_3d_cg",
+          "label": "3D・CG画像",
+          "description": "3Dモデルやコンピューターグラフィックスによる表現として見える画像。見た目だけで制作方法を断定するものではない。",
+          "examples": [
+            "3Dキャラクター",
+            "建築パース",
+            "CGレンダリング"
+          ]
+        },
+        {
+          "id": "illustration_character_sheet",
+          "label": "キャラクター設定・素材シート",
+          "description": "キャラクターの設定、差分、動作素材などをまとめた画像。",
+          "examples": [
+            "三面図",
+            "表情差分",
+            "ポーズ集",
+            "スプライトシート"
+          ]
+        },
+        {
+          "id": "design_logo_icon_symbol",
+          "label": "ロゴ・アイコン・記号",
+          "description": "識別や意味の伝達に使う簡潔な図形・記号。",
+          "examples": [
+            "ブランドロゴ",
+            "アプリアイコン",
+            "ピクトグラム",
+            "絵文字"
+          ]
+        },
+        {
+          "id": "design_ad_banner_thumbnail",
+          "label": "広告・バナー・サムネイル",
+          "description": "告知や誘導のために画像・文字を組み合わせたデザイン。",
+          "examples": [
+            "商品訴求画像",
+            "告知画像",
+            "動画サムネイル"
+          ]
+        },
+        {
+          "id": "design_pattern_texture_abstract",
+          "label": "模様・テクスチャ・抽象画",
+          "description": "模様、素材表面、幾何学的または抽象的な表現が中心の画像。",
+          "examples": [
+            "木目",
+            "布地",
+            "繰り返し模様",
+            "幾何学模様",
+            "抽象表現"
+          ]
+        },
+        {
+          "id": "design_collage_meme",
+          "label": "コラージュ・ミーム",
+          "description": "複数の画像や文字を組み合わせ、比較・装飾・ユーモアなどを表現した画像。",
+          "examples": [
+            "複数画像の組み合わせ",
+            "比較画像",
+            "文字を重ねたネタ画像"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "special_fallback_contents",
+      "label": "特殊画像・分類保留",
+      "categories": [
+        {
+          "id": "special_medical",
+          "label": "医療画像",
+          "description": "医療用の撮像・検査画像としての表現を持つ画像。診断結果や病名は分類しない。",
+          "examples": [
+            "X線画像",
+            "CTの断面画像",
+            "MRIの断面画像",
+            "超音波画像"
+          ]
+        },
+        {
+          "id": "special_microscopy_science",
+          "label": "顕微鏡・科学観察画像",
+          "description": "顕微鏡観察や科学的な観察・実験の対象が中心の画像。",
+          "examples": [
+            "細胞",
+            "微生物",
+            "結晶",
+            "実験・観察画像"
+          ]
+        },
+        {
+          "id": "special_aerial_satellite",
+          "label": "航空・衛星画像",
+          "description": "上空から地表や地物を俯瞰した観測・撮影画像。",
+          "examples": [
+            "上空からの地表",
+            "航空写真",
+            "衛星画像"
+          ]
+        },
+        {
+          "id": "special_sensor_measurement",
+          "label": "センサー・計測画像",
+          "description": "センサーによる測定値や計測結果を画像として可視化したもの。",
+          "examples": [
+            "サーモグラフィー",
+            "深度画像",
+            "測定結果の可視化"
+          ]
+        },
+        {
+          "id": "blank_solid",
+          "label": "単色・空白画像",
+          "description": "ほぼ単色または空白で、意味のある被写体や内容がない画像。",
+          "examples": [
+            "白一色",
+            "黒一色",
+            "透明部分のみ",
+            "ほぼ内容のない画像"
+          ]
+        },
+        {
+          "id": "mixed_content",
+          "label": "複合画像",
+          "description": "複数の内容が同程度の比重で混在し、主要な内容を一つに決めにくい画像。",
+          "examples": [
+            "写真・文書・図が同程度の比重で混在する画像"
+          ]
+        },
+        {
+          "id": "other_content",
+          "label": "その他",
+          "description": "内容は分かるが、用意した内容分類のどれにも該当しない画像。",
+          "examples": [
+            "内容は明確だが対応する分類項目がない画像"
+          ]
+        },
+        {
+          "id": "undetermined_content",
+          "label": "判定不能",
+          "description": "画像は読み込めたが、不鮮明さや情報不足のため内容を判断できない画像。",
+          "examples": [
+            "不鮮明な画像",
+            "極端な切り抜き",
+            "内容を判断できない低解像度画像"
+          ]
+        }
+      ]
+    }
+  ],
+  "classification_examples": [
+    {
+      "input_description": "山と湖を撮った写真。山を主役として扱う例。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "photo_realistic",
+        "primary_content": "photo_landscape",
+        "secondary_contents": [
+          "photo_water"
+        ],
+        "tags": [
+          "山",
+          "湖"
+        ]
+      }
+    },
+    {
+      "input_description": "猫の写真が載ったWebページの画面。ブラウザのUIも見える。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "screenshot",
+        "primary_content": "screen_webpage",
+        "secondary_contents": [
+          "photo_animal"
+        ],
+        "tags": [
+          "猫",
+          "ブラウザ"
+        ]
+      }
+    },
+    {
+      "input_description": "机に置いた領収書をスマートフォンで撮った画像。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "photo_realistic",
+        "primary_content": "document_form_receipt",
+        "secondary_contents": [],
+        "tags": [
+          "領収書",
+          "文字中心"
+        ]
+      }
+    },
+    {
+      "input_description": "キャラクターの表情差分を並べた素材シート。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "illustration_cg",
+        "primary_content": "illustration_character_sheet",
+        "secondary_contents": [
+          "illustration_person_character"
+        ],
+        "tags": [
+          "表情差分",
+          "複数パネル"
+        ]
+      }
+    },
+    {
+      "input_description": "グラフ入りの発表スライドを画像として書き出したもの。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "document_material",
+        "primary_content": "document_presentation",
+        "secondary_contents": [
+          "document_chart"
+        ],
+        "tags": [
+          "グラフ",
+          "文字"
+        ]
+      }
+    },
+    {
+      "input_description": "白一色で何も描かれていない画像。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "other",
+        "primary_content": "blank_solid",
+        "secondary_contents": [],
+        "tags": [
+          "白",
+          "単色"
+        ]
+      }
+    },
+    {
+      "input_description": "読み込めるが、ぼけが強く内容を判断できない画像。",
+      "result": {
+        "processing_status": "classified",
+        "image_type": "undetermined",
+        "primary_content": "undetermined_content",
+        "secondary_contents": [],
+        "tags": [
+          "不鮮明"
+        ]
+      }
+    },
+    {
+      "input_description": "ファイルが破損しており、画像として読み込めない。",
+      "result": {
+        "processing_status": "read_error",
+        "image_type": null,
+        "primary_content": null,
+        "secondary_contents": [],
+        "tags": []
+      }
+    }
+  ]
+}

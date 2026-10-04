@@ -20,6 +20,8 @@ class PhotoPrompts(BaseModel):
 class PhotoInput(BaseModel):
     model_config = ConfigDict(extra='forbid')
     model: Literal['qwen-0.8b', 'qwen-2b']
+    mode: Literal['photos', 'classification'] = 'photos'
+    filename: str = Field(default='画像', max_length=1024)
     image: str | None = Field(default=None, max_length=11_000_000)
     sample_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
     prompts: PhotoPrompts = Field(default_factory=PhotoPrompts)
