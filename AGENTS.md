@@ -28,5 +28,6 @@
 | モデル対戦 | src/battle.html、src/battle.js、src/battle-core.js、tests/battle.test.cjs、tests/battle-browser.cjs、dev/history/v0.6.0/v0.6.0-imp.md |
 | Codex CLI比較 | src/luna.py、src/luna-schema.json、tests/luna_test.py、dev/history/v0.7.0/v0.7.0-imp.md |
 | 画像判定 | src/photos.py、src/photos.html、src/photos.js、tests/photos_test.py、tests/photos-browser.cjs、dev/history/v0.8.0/v0.8.0-imp.md |
+| 画像サンプル・面積推定 | tests/photos-samples-browser.cjs、dev/history/v0.10.0/v0.10.0-imp.md |
 | 品質評価ナレッジ | src/knowledge.py、tests/knowledge_test.py、dev/history/v0.9.0/v0.9.0-imp.md |
 | 配布 | dev/RELEASE_RULE.md |

@@ -36,5 +36,5 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
  await page.screenshot({path:path.join(root,`dev/testing/output/photos-${live?'live':'mock'}.png`),fullPage:true});
  if(!live){assert.equal(await page.locator('#summary').textContent(),'文字情報を含む風景の写真');mode='failure';await page.locator('#evaluate').click();await page.waitForFunction(()=>document.getElementById('status').textContent==='判定失敗');assert.equal(await page.locator('#summary').textContent(),'未判定');}
  await page.locator('#file').setInputFiles({name:'不正.txt',mimeType:'text/plain',buffer:Buffer.from('画像ではありません')});assert((await page.locator('#error').textContent()).includes('JPEG'));assert(await page.locator('#evaluate').isDisabled());
- assert.deepEqual(errors,[]);fs.writeFileSync(path.join(root,`dev/testing/output/photos-${live?'live':'mock'}.json`),JSON.stringify({fixture:'日本語の営業時間を描いた合成画像（写真精度の試験ではない）',records,errors},null,2));console.log('画像選択・2モデル・2項目の判定・不正入力を確認しました。');
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(root,`dev/testing/output/photos-${live?'live':'mock'}.json`),JSON.stringify({fixture:'日本語の営業時間を描いた合成画像（写真精度の試験ではない）',records,errors},null,2));console.log('画像ドロップ・2モデル・面積表示・プロンプト編集・不正入力を確認しました。');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

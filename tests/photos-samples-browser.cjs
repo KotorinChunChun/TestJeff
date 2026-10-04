@@ -1,0 +1,21 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+(async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
+const page=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:8765/photos');
+await page.waitForFunction(()=>document.querySelectorAll('#samples tr').length===5);
+await page.locator('#model').selectOption('qwen-2b');
+await page.locator('#run-samples').click();
+await page.waitForFunction(()=>document.getElementById('sample-status').textContent.includes('5枚完了'),null,{timeout:180000});
+assert.equal(await page.locator('#samples tr').count(),5);
+for(const row of await page.locator('#samples tr').all())assert.match(await row.locator('td').nth(4).textContent(),/約 \d+%/);
+const before=await page.locator('#samples').innerText();
+await page.reload();
+await page.waitForFunction(()=>document.querySelectorAll('#samples tr').length===5);
+assert.equal(await page.locator('#samples').innerText(),before);
+assert.deepEqual(errors,[]);
+await page.screenshot({path:'dev/testing/output/photos-samples-live.png',fullPage:true});
+const result=await (await page.request.get('http://127.0.0.1:8765/testjeff/photo-samples')).json();
+fs.writeFileSync('dev/testing/output/photos-samples-live.json',JSON.stringify(result,null,2));
+console.log(JSON.stringify(result.samples.map(s=>({name:s.name,text:s.result.answers['文字情報'].noul,landscape:s.result.answers['風景'].noul,coverage:s.result.coverage_percent,ms:s.result.response_ms})),null,2));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
