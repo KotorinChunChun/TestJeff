@@ -34,10 +34,18 @@
       }
       header {
         display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
         align-items: center;
         justify-content: space-between;
         border-bottom: 1px solid var(--line);
       }
+      .page-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+      .page-nav a { color: var(--text); }
       .brand {
         font-family: var(--mono);
         font-size: 22px;
@@ -397,7 +405,12 @@
   <body>
     <header>
       <div class="brand">Jeff</div>
-      <a href="/nouns">名詞判定</a>
+      <nav class="page-nav" aria-label="検証ページ">
+        <a href="/nouns">名詞判定</a>
+        <a href="/battle">モデル対戦</a>
+        <a href="/photos">文字風景判定</a>
+        <a href="/classification">画像分類</a>
+      </nav>
       <div id="status" class="status" role="status">接続中</div>
     </header>
     <main>
