@@ -1,6 +1,7 @@
 // 判定時の設定が保存・JSON出力まで残ることを、実モデルを起動せず確認する。
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..');
+const {makeRequest}=require('../src/nouns-core.js');
 const reproduction={schema_version:1,request:{orders:1},execution:{backend:'fds',device:'cpu',revision:'server-test'}};
 async function downloaded(page,button){const pending=page.waitForEvent('download');await page.locator(button).click();return JSON.parse(fs.readFileSync(await(await pending).path(),'utf8'));}
 (async()=>{
@@ -15,7 +16,7 @@ async function downloaded(page,button){const pending=page.waitForEvent('download
    if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/nouns'?'text/html':'application/json'});
    if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
    if(url.pathname==='/testjeff/status')return route.fulfill({json:{ready:true,selected:'qwen-2b'}});
-   if(url.pathname==='/v1/systemone')return route.fulfill({json:{model:req.postDataJSON().model,answers:{判定:{noul:.8}},reproduction}});
+   if(url.pathname==='/v1/systemone'){const body=req.postDataJSON();return route.fulfill({json:{model:body.model,answers:{判定:{noul:.8}},reproduction:{...reproduction,request:{orders:1,...body}}}});}
    if(url.pathname==='/testjeff/feedback'){
     if(req.method()==='GET')return route.fulfill({json:saved});
     saved.push(req.postDataJSON());return route.fulfill({json:saved.at(-1)});
@@ -33,8 +34,9 @@ async function downloaded(page,button){const pending=page.waitForEvent('download
   assert.equal(record.parameters.connection.device,'cpu');assert.equal(record.parameters.connection.port,8767);
   assert.equal(record.parameters.threshold,.5);assert.equal(record.parameters.sort_mode,'time');
   assert.equal(record.parameters.accumulate,false);assert.equal(record.parameters.input_method,'manual');
-  assert.equal(record.parameters.request.state.対象,record.candidate);assert.equal(record.parameters.request.orders,1);
-  assert.match(record.parameters.request.questions.判定.instructions,/道具/);assert.deepEqual(record.reproduction,reproduction);
+  const expectedRequest={orders:1,...makeRequest(record.target,record.candidate),model:record.parameters.request.model};
+  assert.deepEqual(record.parameters.request,expectedRequest);
+  assert.deepEqual(record.reproduction,{...reproduction,request:expectedRequest});
   assert(!JSON.stringify(record).includes('秘密にする試験値'));
   await page.locator('#random').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='10 / 10件完了');
   await page.locator('#rows tr').first().getByRole('button',{name:'良かった',exact:true}).click();

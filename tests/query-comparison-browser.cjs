@@ -1,6 +1,16 @@
 // 実サーバー・実モデルを使わず、同一入力・合計計測・保存・履歴を確認する。
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..'),ids={'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b','gemma-e2b':'jeff-gemma-4-e2b-it'},delay=ms=>new Promise(r=>setTimeout(r,ms));
+const {makeRequest}=require('../src/nouns-core.js');
+function batchReproduction(body,execution){
+ const batches=[];
+ for(let offset=0;offset<body.candidates.length;offset+=8){
+  const requests=body.candidates.slice(offset,offset+8).map(candidate=>makeRequest(body.target,candidate));
+  const payload={model:ids[body.model],state:requests[0].state,questions:Object.fromEntries(requests.map((request,index)=>['item_'+(offset+index),request.questions.判定])),orders:1,images:[]};
+  batches.push({offset,count:requests.length,reproduction:{schema_version:1,request:payload,execution}});
+ }
+ return {schema_version:1,request:body,batches};
+}
 async function download(page){const pending=page.waitForEvent('download');await page.locator('#download').click();return JSON.parse(fs.readFileSync(await(await pending).path(),'utf8'));}
 async function waitAutosaved(page){await page.waitForFunction(()=>document.getElementById('save-status').textContent==='自動保存済み',null,{timeout:15000});}
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
@@ -18,9 +28,9 @@ async function waitAutosaved(page){await page.waitForFunction(()=>document.getEl
    if(holdWarmup&&warm){held();await release.promise;}
    await delay(warm?warmDelay:itemDelay);if(!warm&&failItem&&index===failItem)return route.fulfill({status:503,json:{detail:'試験用の途中失敗'}});
    const execution={backend:'local',model:ids[selected],device:'cpu',revision:'固定版',precision:'float32'};
-   return route.fulfill({json:{model:ids[selected],answers:{判定:{noul:.8}},execution,reproduction:{schema_version:1,request:body,execution}}});
+   return route.fulfill({json:{model:ids[selected],answers:{判定:{noul:.8}},execution,reproduction:{schema_version:1,request:{orders:1,images:[],...body},execution}}});
   }
-  if(url.pathname==='/testjeff/battle-batch'){const body=request.postDataJSON();requests.push({kind:'batch',body});await delay(batchDelay);const execution={backend:'local',model:ids[selected],device:'cpu',revision:'固定版',precision:'float32'};return route.fulfill({json:{results:body.candidates.map(()=>({probability:.7,execution})),reproduction:{schema_version:1,request:body,batches:[{reproduction:{request:body,execution}}]}}});}
+  if(url.pathname==='/testjeff/battle-batch'){const body=request.postDataJSON();requests.push({kind:'batch',body});await delay(batchDelay);const execution={backend:'local',model:ids[selected],device:'cpu',revision:'固定版',precision:'float32'};return route.fulfill({json:{results:body.candidates.map(()=>({probability:.7,execution})),reproduction:batchReproduction(body,execution)}});}
   if(url.pathname==='/testjeff/battle-runs'){
    if(request.method()==='POST'){const data=request.postDataJSON();saveAttempts.push(data);if(failSave&&data.run.batch){failSave=false;return route.fulfill({status:503,json:{detail:'試験用の保存失敗'}});}let item=saved.find(x=>x.run_id===data.run.id);if(!item){item={id:saved.length+1,run_id:data.run.id,recorded_at:data.run.at,...data};saved.push(item);}return route.fulfill({json:item});}
    const rows=[...saved].reverse().map(item=>({id:item.id,run_id:item.run_id,recorded_at:item.recorded_at,target:item.run.target,status:item.run.status,selected_models:item.run.selected_models,batch:item.run.batch,connection:item.connection,comparison_id:item.run.parameters.comparison_id,comparison_mode:item.run.parameters.comparison_mode}));return route.fulfill({json:{rows,next_before:null}});
@@ -55,9 +65,9 @@ async function waitAutosaved(page){await page.waitForFunction(()=>document.getEl
    assert.equal(saveAttempts.at(-1).run.id,failedId);assert.equal(saveAttempts.at(-1).run.batch,true);
   }else await waitAutosaved(page);
   const value=await download(page);assert.deepEqual(value.method_order,methodOrder);assert.equal(value.records.single.run.candidates.length,count);assert.deepEqual(value.records.single.run.candidates,value.records.batch.run.candidates);assert.equal(value.records.single.run.parameters.comparison_id,value.comparison_id);assert.equal(value.records.batch.run.parameters.comparison_id,value.comparison_id);assert.equal(value.records.single.run.parameters.input_method,count===1?'random':'manual');assert.equal(value.records.batch.run.parameters.input_method,count===1?'random':'manual');
-  const sent=requests.slice(before),single=sent.filter(x=>x.kind==='single'),batch=sent.filter(x=>x.kind==='batch');assert.equal(single.length,count);assert.equal(batch.length,1);assert.equal(sent.filter(x=>x.kind==='warmup').length,2);assert.deepEqual(single.map(x=>x.body.state.対象),batch[0].body.candidates);assert.equal(batch[0].body.target,value.records.single.run.target);
+  const sent=requests.slice(before),single=sent.filter(x=>x.kind==='single'),batch=sent.filter(x=>x.kind==='batch');assert.equal(single.length,count);assert.equal(batch.length,1);assert.equal(sent.filter(x=>x.kind==='warmup').length,2);assert.deepEqual(single.map(x=>x.body),batch[0].body.candidates.map(candidate=>({...makeRequest(batch[0].body.target,candidate),model:ids[batch[0].body.model]})));assert.equal(batch[0].body.target,value.records.single.run.target);
   for(const mode of ['single','batch']){const run=value.records[mode].run,total=run.query_totals['qwen-0.8b'];assert.equal(total.count,count);assert.equal(total.complete,true);assert.equal(run.parameters.candidate_count,count);assert.equal(run.results['qwen-0.8b'].length,count);assert(run.warmup['qwen-0.8b'].reproduction);assert.equal(run.execution['qwen-0.8b'].device,'cpu');assert(total.total_ms+2>=total.response_sum_ms);if(count===1)assert(total.total_ms<200,'ロード・予備判定の待ちを合計から除外');}
-  assert(value.records.batch.run.parameters.batch_execution['qwen-0.8b']);assert.equal(value.metrics['qwen-0.8b'].comparable,true);assert(!(await page.locator('#comparison-wait').isVisible()));
+  assert(value.records.batch.run.parameters.batch_execution['qwen-0.8b']);assert.equal(value.metrics['qwen-0.8b'].prompt_condition,'verified');assert.equal(value.metrics['qwen-0.8b'].comparable,true);assert(!(await page.locator('#comparison-wait').isVisible()));
   await page.locator('#comparison-results tr').first().getByRole('button',{name:'詳細',exact:true}).click();
   assert.deepEqual(await page.locator('#detail-content thead th').allTextContents(),['候補','個別の判定','個別応答','一括の判定']);
   assert.equal(await page.locator('#detail-content tbody tr').count(),count);

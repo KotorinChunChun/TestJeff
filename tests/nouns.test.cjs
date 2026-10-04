@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const {draw, makeRequest, accumulate} = require('../src/nouns-core.js');
+const {protocol, draw, makeRequest, accumulate} = require('../src/nouns-core.js');
 const root = path.join(__dirname, '..');
 const groups = JSON.parse(fs.readFileSync(path.join(root, 'src/data/nouns.json'), 'utf8'));
 const words = groups.flatMap(group => group.words);
@@ -29,8 +29,14 @@ assert.throws(() => makeRequest(' ', '犬'));
 assert.throws(() => makeRequest('動物', 'あ'.repeat(81)));
 const request = makeRequest(' 動物 ', ' 猫 ');
 assert.equal(request.questions.判定.type, 'noul');
-assert.equal(request.state.対象, '猫');
-assert(request.questions.判定.instructions.startsWith('これは動物ですか？'));
+assert.equal(protocol, 'noun-v2');
+assert.equal(request.state, '名詞の一般的な意味に基づいて判定してください。');
+assert.equal(request.questions.判定.instructions, '「猫」は「動物」ですか？');
+assert.deepEqual(request.questions.判定.criteria, {true:'動物に当てはまる',false:'動物ではない'});
+assert.equal(makeRequest(' 「日常」\nの物 ', ' "机"\nの上 ').questions.判定.instructions, '「"机"\nの上」は「「日常」\nの物」ですか？');
+assert.equal(makeRequest('\ufeff動物\u3000','\t猫\r\n').questions.判定.instructions, '「猫」は「動物」ですか？');
+assert.doesNotThrow(()=>makeRequest('動物','🐱'.repeat(40)));
+assert.throws(()=>makeRequest('動物','🐱'.repeat(41)));
 console.log('名詞1,000語、100回の抽選、重複防止、入力検証、日本語リクエストを確認しました。');
 
 const first = accumulate(null, Array(10).fill(20), Array(10).fill(.2));

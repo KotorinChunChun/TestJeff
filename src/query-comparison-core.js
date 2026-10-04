@@ -22,15 +22,57 @@
     const keys=a.mode==='fds'?['host','port','device','key']:['local_device','key'];
     return keys.some(key=>(a[key]??null)!==(b[key]??null))?'different':'verified';
   }
+  const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+  function canonical(value){
+    if(value===null||typeof value==='string'||typeof value==='boolean')return JSON.stringify(value);
+    if(typeof value==='number')return Number.isFinite(value)?JSON.stringify(value):undefined;
+    if(Array.isArray(value)){
+      const items=Array.from(value,canonical);return items.every(item=>item!==undefined)?'['+items.join(',')+']':undefined;
+    }
+    if(object(value)){
+      const items=Object.keys(value).sort().map(key=>{const item=canonical(value[key]);return item===undefined?undefined:JSON.stringify(key)+':'+item;});
+      return items.every(item=>item!==undefined)?'{'+items.join(',')+'}':undefined;
+    }
+    return undefined;
+  }
+  function promptRows(request){
+    if(!object(request)||!Object.hasOwn(request,'state')||!object(request.questions))return null;
+    const orders=Object.hasOwn(request,'orders')?request.orders:1,images=Object.hasOwn(request,'images')?request.images:[];
+    if(![1,2].includes(orders)||!Array.isArray(images))return null;
+    const questions=Object.values(request.questions);if(!questions.length)return null;
+    const rows=[];
+    for(const question of questions){
+      if(!object(question)||!['noul','choice','score'].includes(question.type)||!Object.hasOwn(question,'instructions')||!Object.hasOwn(question,'criteria'))return null;
+      // 状態オブジェクトとchoiceの順序は、実際のプロンプトの文字列・選択肢順に影響する。
+      const criteria=question.type==='choice'&&object(question.criteria)?Object.entries(question.criteria):question.criteria;
+      const row=canonical({state:JSON.stringify(request.state),question:{type:question.type,instructions:JSON.stringify(question.instructions),criteria},orders,images});
+      if(row===undefined)return null;rows.push(row);
+    }
+    return rows;
+  }
+  function promptCondition(singleRun,batchRun,id){
+    if(id==='gpt-5.6-luna')return 'not_applicable';
+    const count=singleRun?.candidates?.length,singles=singleRun?.results?.[id],batches=batchRun?.parameters?.batch_execution?.[id]?.batches;
+    if(!Array.isArray(singleRun?.candidates)||!count||!Array.isArray(batchRun?.candidates)||batchRun.candidates.length!==count||!Array.isArray(singles)||singles.length!==count||!Array.isArray(batches)||!batches.length)return 'unknown';
+    const individual=[],grouped=[];
+    for(const item of singles){const rows=promptRows(item?.reproduction?.request);if(!rows||rows.length!==1)return 'unknown';individual.push(rows[0]);}
+    for(const batch of batches){
+      const rows=promptRows(batch?.reproduction?.request);if(!rows)return 'unknown';
+      if((Object.hasOwn(batch,'offset')&&batch.offset!==grouped.length)||(Object.hasOwn(batch,'count')&&batch.count!==rows.length))return 'unknown';
+      grouped.push(...rows);
+    }
+    if(grouped.length!==count)return 'unknown';
+    return individual.every((row,index)=>row===grouped[index])?'verified':'different';
+  }
   function metrics(records){
     const single=records.single?.run,batch=records.batch?.run,ids=single?.selected_models||batch?.selected_models||[];
     return Object.fromEntries(ids.map(id=>{
       const execution=executionCondition(single?.execution?.[id],batch?.execution?.[id]),connection=connectionCondition(records.single?.connection,records.batch?.connection),condition=[execution,connection].includes('different')?'different':[execution,connection].includes('unknown')?'unknown':'verified';
-      const comparable=sameInputs(single,batch)&&finished(single,id)&&finished(batch,id)&&condition==='verified';
+      const prompt=promptCondition(single,batch,id),comparable=sameInputs(single,batch)&&finished(single,id)&&finished(batch,id)&&condition==='verified'&&(prompt==='verified'||prompt==='not_applicable');
       const s=single?.query_totals?.[id]?.total_ms??null,b=batch?.query_totals?.[id]?.total_ms??null;
-      return [id,{comparable,execution_condition:condition,single_total_ms:s,batch_total_ms:b,reduction_percent:comparable&&s>0?(s-b)/s*100:null,speedup:comparable&&b>0?s/b:null}];
+      return [id,{comparable,execution_condition:condition,prompt_condition:prompt,single_total_ms:s,batch_total_ms:b,reduction_percent:comparable&&s>0?(s-b)/s*100:null,speedup:comparable&&b>0?s/b:null}];
     }));
   }
-  const api={sameInputs,valid,finished,sameExecution,executionCondition,connectionCondition,metrics};
+  const api={sameInputs,valid,finished,sameExecution,executionCondition,connectionCondition,promptCondition,metrics};
   if(typeof module!=='undefined')module.exports=api;else root.QueryComparisonCore=api;
 })(globalThis);

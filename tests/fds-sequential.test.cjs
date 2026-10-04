@@ -5,6 +5,17 @@ const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const ids=['qwen-2b','gemma-e2b'],slots=[...ids,'',''],count=10,token='test-only-approval-not-for-records';
 const apiIds=Object.fromEntries(require('../src/battle-core.js').models.map(model=>[model.id,model.api]));
 const autosaveApi=require('../src/query-autosave.js');
+const {makeRequest}=require('../src/nouns-core.js');
+const comparisonCore=require('../src/query-comparison-core.js');
+function batchReproduction(body,execution){
+ const batches=[];
+ for(let offset=0;offset<body.candidates.length;offset+=8){
+  const requests=body.candidates.slice(offset,offset+8).map(candidate=>makeRequest(body.target,candidate));
+  const payload={model:apiIds[body.model],state:requests[0].state,questions:Object.fromEntries(requests.map((request,index)=>['item_'+(offset+index),request.questions.判定])),orders:1,images:[]};
+  batches.push({offset,count:requests.length,reproduction:{schema_version:1,request:payload,execution}});
+ }
+ return {schema_version:1,request:body,batches};
+}
 
 class Element {
  constructor(tag='div'){
@@ -67,8 +78,8 @@ async function scenario({page,batch=false,reverse=false,failFirst=false,cancel=f
     const id=url.pathname==='/v1/systemone'?ids.find(id=>apiIds[id]===body.model):body.model;
     assert.equal(loading,false,'準備応答前に推論を送らない');assert.equal(id,loaded,'実際に準備が完了したモデルだけを推論する');
     events.push([url.pathname==='/v1/systemone'?'single':'batch',id]);
-    if(url.pathname==='/v1/systemone')return response({model:apiIds[id],answers:{判定:{noul:.8}},execution:execution(id)});
-    assert.equal(body.candidates.length,count);return response({results:body.candidates.map(()=>({probability:.8,execution:execution(id)}))});
+    if(url.pathname==='/v1/systemone')return response({model:apiIds[id],answers:{判定:{noul:.8}},execution:execution(id),reproduction:{schema_version:1,request:{orders:1,images:[],...body},execution:execution(id)}});
+    assert.equal(body.candidates.length,count);return response({results:body.candidates.map(()=>({probability:.8,execution:execution(id)})),reproduction:batchReproduction(body,execution(id))});
    }
    case '/testjeff/battle-runs':
     if(!body)return response({rows:[],next_before:null});
@@ -108,6 +119,10 @@ async function scenario({page,batch=false,reverse=false,failFirst=false,cancel=f
   assert.equal(record.connection.auto_unload,true);assert(!JSON.stringify(record).includes(token),'承認トークンを保存しない');
  }
  assert.equal(approvalCount,failFirst?0:1);
+ if(page==='query-comparison'){
+  const compared=comparisonCore.metrics(Object.fromEntries(records.map(record=>[record.run.parameters.comparison_mode,record])));
+  for(const id of succeeded){assert.equal(compared[id].prompt_condition,'verified');assert.equal(compared[id].comparable,true,'実際の個別・一括入力が一致したモデルだけ速度比較する');}
+ }
  assert.deepEqual(events.filter(event=>event[0]==='ready').map(event=>event[1]),succeeded);
  for(const id of succeeded){
   const measured=events.filter(event=>['single','batch'].includes(event[0])&&event[1]===id).map(event=>event[0]);

@@ -249,9 +249,9 @@ async function api(path,body){
   if(!response.ok){const detail=await response.json().catch(()=>({}));if(response.status===401)$('auth').classList.remove('hidden');throw Error(typeof detail.detail==='string'?detail.detail:response.status===401?'APIキーを入力してください。':`処理に失敗しました（${response.status}）。他の画面での評価・モデル切り替えが終わってから再実行してください。`);}
   return response.json();
 }
-async function predict(model,request){
+async function predict(model,request,candidate){
   if(model.cloud){
-    const start=performance.now(),data=await api('/testjeff/luna',{target:run.target,candidate:request.state.対象});
+    const start=performance.now(),data=await api('/testjeff/luna',{target:run.target,candidate});
     if(data.model!==model.api||typeof data.verdict!=='boolean')throw Error('Lunaの応答が不正です。');
     return {verdict:data.verdict,ms:performance.now()-start,source:data.source,reasoning:data.reasoning,cli_ms:data.duration_ms,usage:data.usage,reproduction:data.reproduction||null};
   }
@@ -296,7 +296,7 @@ async function battle(inputMethod='manual'){
       if(!state.ready||state.selected!==m.id)throw Error('モデルを読み込めませんでした。');
       }else run.execution[m.id]={backend:'cloud',model:m.api,source:'Codex CLI',reasoning:'low'};
       if(stop)break;$('progress').textContent=`${m.name} 予備判定`;
-      run.warmup[m.id]=await predict(m,requests[0]);run.results[m.id]=[];
+      run.warmup[m.id]=await predict(m,requests[0],run.candidates[0]);run.results[m.id]=[];
       if(run.warmup[m.id].execution)run.execution[m.id]={...run.execution[m.id],...clone(run.warmup[m.id].execution)};
       if(stop)break;
       if(run.batch){
@@ -309,7 +309,7 @@ async function battle(inputMethod='manual'){
       }else for(let i=0;i<candidates.length&&!stop;i++){
         $('progress').textContent=`${m.name} ${i+1} / ${candidates.length}件`;
         if(queryStarted===null)queryStarted=performance.now();queryInFlight=true;
-        const result=await predict(m,requests[i]);queryEnded=performance.now();queryInFlight=false;
+        const result=await predict(m,requests[i],run.candidates[i]);queryEnded=performance.now();queryInFlight=false;
         run.results[m.id].push(result);recordQueryTotal(m.id,queryStarted,queryEnded,i+1===candidates.length&&!stop);render();
       }
       if(!m.cloud){

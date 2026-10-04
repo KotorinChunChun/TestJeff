@@ -16,8 +16,8 @@
     const a = target.trim(), b = candidate.trim();
     if (!a || !b) throw new Error('名詞を入力してください。');
     if (a.length > 80 || b.length > 80) throw new Error('名詞は80文字以内で入力してください。');
-    return {model: 'jeff-latest', state: {対象: b}, questions: {
-      判定: {type: 'noul', instructions: `これは${a}ですか？ 対象の名詞の一般的な意味に基づいて判定してください。`,
+    return {model: 'jeff-latest', state: '名詞の一般的な意味に基づいて判定してください。', questions: {
+      判定: {type: 'noul', instructions: `「${b}」は「${a}」ですか？`,
         criteria: {true: `${a}に当てはまる`, false: `${a}ではない`}}
     }};
   }
@@ -30,7 +30,7 @@
       totalMs:old.totalMs+timings.reduce((a,b)=>a+b,0),
       probabilitySum:old.probabilitySum+probabilities.reduce((a,b)=>a+b,0)};
   }
-  const api = {draw, makeRequest, accumulate};
+  const api = {protocol:'noun-v2', draw, makeRequest, accumulate};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.NounCore = api;
 })(globalThis);

@@ -9,6 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'src'))
 import testjeff
 import local_device_test
+from noun_requests import PROTOCOL, make_request
 
 
 class BattleBatchAPI(unittest.TestCase):
@@ -28,6 +29,7 @@ class BattleBatchAPI(unittest.TestCase):
             response=self.client.post('/testjeff/battle-batch',json={'model':'qwen-0.8b','target':'動物','candidates':['犬']*count})
             self.assertEqual(response.status_code,200)
             data=response.json()
+            self.assertEqual(data['reproduction']['noun_protocol'],PROTOCOL)
             self.assertEqual(len(data['results']),count)
             chunks=data['reproduction']['batches']
             self.assertEqual([chunk['count'] for chunk in chunks],[min(8,count-offset) for offset in range(0,count,8)])
@@ -40,14 +42,42 @@ class BattleBatchAPI(unittest.TestCase):
     def test_fds_chunk_counts(self):
         remote=Mock()
         remote.predict.side_effect=lambda payload,model:self.answer(payload)
-        for count in (1,30,100):
+        for count in (1,10,30,100):
             remote.reset_mock()
             with patch.object(testjeff.FDS,'from_request',return_value=remote):
                 response=self.client.post('/testjeff/battle-batch',json={'model':'qwen-2b','target':'動物','candidates':['犬']*count})
             self.assertEqual(response.status_code,200)
             self.assertEqual(len(response.json()['results']),count)
+            self.assertEqual(response.json()['reproduction']['noun_protocol'],PROTOCOL)
             self.assertEqual([len(call.args[0]['questions']) for call in remote.predict.call_args_list],
                              [min(8,count-offset) for offset in range(0,count,8)])
+
+    def test_local_and_fds_batch_prompts_match_single_requests(self):
+        words=[' 犬 ', '「看板」', '"机"', '朝\nご飯', '🐱', ' 傘 ']
+        for remote_mode in (False,True):
+            for count in (1,10,30,100):
+                candidates=[words[i%len(words)] for i in range(count)]
+                model='qwen-2b' if remote_mode else 'qwen-0.8b'
+                remote=Mock()
+                remote.predict.side_effect=lambda payload,model:self.answer(payload)
+                self.predict.reset_mock()
+                self.predict.side_effect=lambda model,payload:self.answer(payload)
+                with patch.object(testjeff.FDS,'from_request',return_value=remote if remote_mode else None):
+                    response=self.client.post('/testjeff/battle-batch',json={'model':model,'target':' 日常の物 ','candidates':candidates})
+                self.assertEqual(response.status_code,200,response.text)
+                calls=remote.predict.call_args_list if remote_mode else self.predict.call_args_list
+                flattened=[]
+                for call in calls:
+                    payload=call.args[0 if remote_mode else 1]
+                    self.assertLessEqual(len(payload['questions']),8)
+                    for key,question in payload['questions'].items():
+                        index=len(flattened)
+                        single=make_request(' 日常の物 ',candidates[index],testjeff.API_IDS[model])
+                        self.assertEqual(payload['model'],single['model'])
+                        self.assertEqual(payload['state'],single['state'])
+                        self.assertEqual(question,single['questions']['判定'])
+                        flattened.append(key)
+                self.assertEqual(flattened,[f'item_{i}' for i in range(count)])
 
     def test_incorrect_backend_answers_fail_without_partial_response(self):
         body={'model':'qwen-0.8b','target':'動物','candidates':['犬']*30}
@@ -67,7 +97,7 @@ class BattleBatchAPI(unittest.TestCase):
             self.assertFalse(self.service.lock.locked())
 
     def test_invalid_inputs_and_luna_count(self):
-        for candidates in ([],['犬']*101,[''],['あ'*81]):
+        for candidates in ([],['犬']*101,[''],['あ'*81],['🐱'*41]):
             response=self.client.post('/testjeff/battle-batch',json={'model':'qwen-0.8b','target':'動物','candidates':candidates})
             self.assertEqual(response.status_code,422)
         for count in (1,30,100):

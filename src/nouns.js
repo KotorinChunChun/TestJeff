@@ -149,9 +149,9 @@ async function evaluate(accumulate = false) {
   if (running || (!ready && window.TestJeffConnection?.config.mode!=='fds')) return;
   showError();
   let requests;
-  const runModel = $('model-select').value || selectedModel, runTarget = $('target').value.trim(), runId = crypto.randomUUID(), timings = [], probabilities = [];
+  const runModel = $('model-select').value || selectedModel, runTarget = $('target').value.trim(), runId = crypto.randomUUID(), timings = [], probabilities = [], runCandidates = rows.map(row => row.input.value.trim());
   try {
-    requests = rows.map(row => ({...NounCore.makeRequest(runTarget, row.input.value), model:MODEL_NAMES[runModel]}));
+    requests = runCandidates.map(candidate => ({...NounCore.makeRequest(runTarget, candidate), model:MODEL_NAMES[runModel]}));
   }
   catch (error) {showError(error.message); return;}
   const parameters={schema_version:1,connection:connectionSnapshot(),statistics_key:STORAGE_KEY,sort_mode:$('sort-order').value,
@@ -179,10 +179,10 @@ async function evaluate(accumulate = false) {
         if (typeof probability !== 'number' || !Number.isFinite(probability) || probability < 0 || probability > 1) throw new Error('確率の応答が不正です。');
         row.percent.textContent = `${(probability * 100).toFixed(1)}%`;
         row.fill.style.width = `${probability * 100}%`;
-        row.answer.textContent = `「${request.state.対象}」は「${runTarget}」${probability >= .5 ? 'です' : 'ではありません'}`;
+        row.answer.textContent = `「${runCandidates[index]}」は「${runTarget}」${probability >= .5 ? 'です' : 'ではありません'}`;
         row.answer.className = probability >= .5 ? 'answer yes' : 'answer no';
         row.elapsed = elapsed;
-        row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:request.state.対象,
+        row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:runCandidates[index],
           execution:data.execution||null, reproduction:data.reproduction||null,
           parameters:{...parameters,request:JSON.parse(JSON.stringify({orders:1,...request})),input_index:index},
           model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};

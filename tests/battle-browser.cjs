@@ -2,6 +2,7 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const core=require('../src/battle-core.js');
+const {makeRequest}=require('../src/nouns-core.js');
 const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||process.env.KNOWLEDGE_URL||'http://127.0.0.1:8767';
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
   const page=await browser.newPage({viewport:{width:1250,height:1000}}),errors=[],calls=[],lunaCalls=[],switches=[];
@@ -44,7 +45,7 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   await page.locator('#start').click();
   await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了',null,{timeout:240000});
   assert.equal(calls.length,33);assert.equal(switches.at(-1),original);
-  for(const m of core.models.filter(m=>!m.cloud)){const batch=calls.filter(c=>c.model===m.api);assert.equal(batch.length,11);assert.deepEqual(batch.slice(1).map(c=>c.state.対象),candidates);assert(batch.every(c=>c.questions.判定.instructions.startsWith('これは持ち運べる物ですか？')));}
+  for(const m of core.models.filter(m=>!m.cloud)){const batch=calls.filter(c=>c.model===m.api);assert.equal(batch.length,11);const expected=candidates.map(candidate=>({...makeRequest('持ち運べる物',candidate),model:m.api}));assert.deepEqual(batch.slice(1),expected);assert.deepEqual(batch[0],expected[0],'予備判定にも同じ文面を使う');}
   assert.equal(lunaCalls.length,11);assert.deepEqual(lunaCalls.slice(1).map(x=>x.candidate),candidates);assert(lunaCalls.every(x=>x.target==='持ち運べる物'));
   assert.equal(await page.locator('.result').count(),40);
   const stats=await page.evaluate(()=>JSON.parse(localStorage.getItem('testjeff-battle-v2')));

@@ -13,6 +13,15 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 from fds_client import FDS
 
 class FDSTest(unittest.TestCase):
+    def test_input_token_evidence_covers_all_orders(self):
+        client=FDS('127.0.0.1',8767)
+        client.call=Mock(side_effect=[
+            {'model':'jeff-qwen-2b','answers':{'質問':{'type':'choice','choice':'option_1','probabilities':{'option_0':.2,'option_1':.8}}},'usage':{'input_tokens':n}}
+            for n in (123,124)])
+        result=client.predict({'state':'猫','orders':2,'questions':{'質問':{'type':'noul','instructions':'動物か'}}},'qwen-2b')
+        self.assertEqual(result['execution']['input_tokens'],247)
+        self.assertEqual(result['reproduction']['execution']['input_tokens'],247)
+
     def test_target(self):
         for host,port in [('http://127.0.0.1',8767),('0.0.0.0',8767),('127.0.0.1',0),('224.0.0.1',80)]:
             with self.assertRaises(HTTPException):FDS(host,port)
