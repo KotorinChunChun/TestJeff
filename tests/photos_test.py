@@ -25,7 +25,7 @@ class PhotosTest(unittest.TestCase):
         image = Image.open(io.BytesIO(base64.b64decode(data.split(',')[1])))
         self.assertEqual(image.getpixel((0, 0)), (255, 255, 255))
         self.assertFalse(image.getexif())
-        self.assertEqual(set(questions()), {'文字情報', '風景', '看板面積'})
+        self.assertEqual(set(questions()), {'文字情報', '風景', '看板面積', '白黒'})
 
     def test_prompts_and_source(self):
         with self.assertRaises(ValidationError):

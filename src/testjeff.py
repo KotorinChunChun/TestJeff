@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import math
 import os
@@ -135,7 +136,7 @@ def serve(name: str, port: int, device: str) -> None:
 
     @server.app.post('/testjeff/image-failure', dependencies=[Depends(server.authenticate)])
     def image_failure(body: PhotoFailure):
-        result = {'error':body.error, 'model':body.model, 'image_type':None, 'primary_content':None,
+        result = {'error':body.error, 'model':body.model, 'source_size':body.source_size, 'file_size_bytes':body.file_size_bytes, 'image_type':None, 'primary_content':None,
                   'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
         return {'record_id':image_store.save(body.mode, body.filename, None, result)}
 
@@ -176,13 +177,15 @@ def serve(name: str, port: int, device: str) -> None:
                                                images=[picture], questions=questions_used)
             started = time.perf_counter()
             result = server.predict(server.service.model, request)
-            result = {**result, 'source_size':source_size, 'input_size':input_size,
+            result = {**result, 'source_size':source_size, 'input_size':input_size, 'file_size_bytes':len(base64.b64decode(source.split(',',1)[1])),
                       'response_ms':(time.perf_counter() - started) * 1000,
                       'prompts':body.prompts.model_dump() if body.mode == 'photos' else {key:value['instructions'] for key,value in questions_used.items()}, 'revision':MODELS[body.model]['revision'],
                       'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
             if body.mode == 'classification':
                 result.update(classification_result(result['answers']))
             else:
+                result['monochrome_probability'] = result['answers']['白黒']['noul']
+                result['is_monochrome'] = result['monochrome_probability'] >= 0.5
                 result['coverage_percent'] = int(result['answers']['看板面積']['choice'])
             result['record_id'] = image_store.save(body.mode, filename if body.sample_id else body.filename, picture, result)
             if body.sample_id and body.mode == 'photos':
@@ -236,7 +239,7 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/classification', '/classification/'):
             html = (ROOT / 'src/photos.html').read_text(encoding='utf-8')
-            html = html.replace('文字風景判定', '画像分類', 2).replace('<body>', '<body class="classification">')
+            html = html.replace('Jev互換ローカル画像判定 — 文字風景判定', '画像分類').replace('<body>', '<body class="classification">')
             html = html.replace('<th>文字情報</th><th>風景</th><th>看板面積（推定）</th>', '<th>大分類</th><th>小分類</th><th>定義版</th>')
             return HTMLResponse(html)
         if request.method == 'GET' and request.url.path in ('/photos', '/photos/'):

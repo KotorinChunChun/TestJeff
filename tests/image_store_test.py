@@ -23,7 +23,7 @@ class StoreTest(unittest.TestCase):
             path=Path(folder)/'images.sqlite3'
             stream=io.BytesIO();Image.new('RGB',(1000,500),'green').save(stream,format='JPEG')
             picture='data:image/jpeg;base64,'+base64.b64encode(stream.getvalue()).decode()
-            result={'created_at':'2026-10-04','model':'test','image_type':'photo_realistic','primary_content':'photo_plant'}
+            result={'created_at':'2026-10-04','model':'test','image_type':'photo_realistic','primary_content':'photo_plant','source_size':[1000,500],'file_size_bytes':123456,'is_monochrome':False,'monochrome_probability':0.1}
             store=ImageStore(path);ident=store.save('classification','写真.jpg',picture,result)
             self.assertEqual(store.history('photos'),[])
             rows=ImageStore(path).history('classification')
@@ -32,6 +32,7 @@ class StoreTest(unittest.TestCase):
             self.assertEqual(thumb.size,(240,120))
             with store.connect() as db:
                 self.assertEqual(db.execute('select typeof(thumbnail) from image_results').fetchone()[0],'blob')
+                self.assertEqual(db.execute('select source_width,source_height,file_size_bytes,is_monochrome,monochrome_probability from image_results').fetchone(),(1000,500,123456,0,0.1))
             self.assertEqual(store.history('classification',ident),[])
             store.save('classification','破損.png',None,{'created_at':'2026-10-04','model':'test','error':'画像を読み込めません'})
             failure=store.history('classification')[0]

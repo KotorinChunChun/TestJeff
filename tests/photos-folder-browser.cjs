@@ -6,9 +6,9 @@ page.on('pageerror',e=>errors.push(e.message));
 if(!live)await page.route('**/*',async route=>{const url=new URL(route.request().url());
  if(url.pathname==='/photos'||url.pathname==='/assets/photos.js')return route.fulfill({body:fs.readFileSync(path.join(root,url.pathname==='/photos'?'src/photos.html':'src/photos.js'),'utf8'),contentType:url.pathname==='/photos'?'text/html':'text/javascript'});
  if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
- if(url.pathname==='/testjeff/photo-samples')return route.fulfill({json:{prompts:{text:'文字',landscape:'風景',coverage:'看板面積'},samples:[]}});
+ if(url.pathname==='/testjeff/photo-samples')return route.fulfill({json:{prompts:{text:'文字',landscape:'風景',coverage:'看板面積',monochrome:'白黒の試験'},samples:[]}});
  if(url.pathname==='/testjeff/model')return route.fulfill({json:{ready:true,selected:'qwen-2b'}});
- if(url.pathname==='/testjeff/photos'){requests++;if(requests===2)return route.fulfill({status:422,json:{detail:'画像を読み込めません'}});return route.fulfill({json:{model:'jeff-qwen3.5-2b',answers:{文字情報:{noul:.9},風景:{noul:.1}},coverage_percent:30,response_ms:100,prompts:route.request().postDataJSON().prompts}});}
+ if(url.pathname==='/testjeff/photos'){requests++;if(requests===2)return route.fulfill({status:422,json:{detail:'画像を読み込めません'}});return route.fulfill({json:{model:'jeff-qwen3.5-2b',answers:{文字情報:{noul:.9},風景:{noul:.1},白黒:{noul:.1}},coverage_percent:30,is_monochrome:false,monochrome_probability:.1,response_ms:100,prompts:route.request().postDataJSON().prompts}});}
  return route.fulfill({status:404});
 });
 await page.goto(base+'/photos');await page.waitForFunction(()=>document.getElementById('prompt-text').value.length>0);

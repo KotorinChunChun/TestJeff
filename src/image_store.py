@@ -45,6 +45,16 @@ class ImageStore:
                 image_type TEXT, primary_content TEXT, result_json TEXT NOT NULL,
                 thumbnail BLOB NOT NULL, thumbnail_mime TEXT NOT NULL DEFAULT 'image/jpeg')''')
 
+            columns = {row[1] for row in db.execute('PRAGMA table_info(image_results)')}
+            for column, kind in [('source_width','INTEGER'), ('source_height','INTEGER'), ('file_size_bytes','INTEGER'), ('is_monochrome','INTEGER'), ('monochrome_probability','REAL')]:
+                if column not in columns:
+                    db.execute(f'ALTER TABLE image_results ADD COLUMN {column} {kind}')
+            # 旧履歴の元解像度のみ既存JSONから復元。未知の元容量や白黒判定は推測しない。
+            for ident, payload in db.execute('SELECT id,result_json FROM image_results WHERE source_width IS NULL').fetchall():
+                size = json.loads(payload).get('source_size')
+                if size:
+                    db.execute('UPDATE image_results SET source_width=?,source_height=? WHERE id=?', (*size,ident))
+
     @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=20)
@@ -63,10 +73,10 @@ class ImageStore:
                 im.convert('RGB').save(out, format='JPEG', quality=80)
         with self.connect() as db:
             cursor = db.execute('''INSERT INTO image_results
-                (mode,filename,sha256,created_at,model,image_type,primary_content,result_json,thumbnail)
-                VALUES (?,?,?,?,?,?,?,?,?)''', (mode,filename,hashlib.sha256(raw).hexdigest(),result['created_at'],
+                (mode,filename,sha256,created_at,model,image_type,primary_content,result_json,thumbnail,source_width,source_height,file_size_bytes,is_monochrome,monochrome_probability)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (mode,filename,hashlib.sha256(raw).hexdigest(),result['created_at'],
                 result['model'],result.get('image_type'),result.get('primary_content'),
-                json.dumps(result,ensure_ascii=False),out.getvalue()))
+                json.dumps(result,ensure_ascii=False),out.getvalue(),*(result.get('source_size') or [None,None]),result.get('file_size_bytes'),result.get('is_monochrome'),result.get('monochrome_probability')))
             return cursor.lastrowid
 
     def history(self, mode, before=0):

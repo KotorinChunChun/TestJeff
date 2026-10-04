@@ -14,6 +14,7 @@ class PhotoPrompts(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     text: str = Field(default='この画像には、看板、標識、掲示物、紙面、画面などに書かれた文字や数字が視覚的に含まれていますか？', min_length=1, max_length=2000)
     landscape: str = Field(default='この画像は、山、海、空、森林、公園、街並みなど、屋外の景観が主な被写体ですか？看板が写っていても景観が主なら当てはまります。', min_length=1, max_length=2000)
+    monochrome: str = Field(default='この画像は白・黒・灰色の濃淡だけで表現された白黒画像ですか？色が付いた部分がある場合やセピア色はカラーとして判断してください。', min_length=1, max_length=2000)
     coverage: str = Field(default='画像全体の面積に対して、文字が書かれた看板・標識・掲示板の面が占める面積の割合を推定してください。文字の画素だけでなく看板の背景を含む面全体を数え、支柱は除きます。複数の看板は重なりを二重計上せず合計します。看板がない場合は0%。最も近い割合を選んでください。', min_length=1, max_length=2000)
 
 
@@ -39,6 +40,8 @@ class PhotoFailure(BaseModel):
     model: Literal['qwen-0.8b', 'qwen-2b']
     filename: str = Field(max_length=1024)
     error: str = Field(max_length=2000)
+    file_size_bytes: int | None = Field(default=None, ge=0)
+    source_size: tuple[int, int] | None = None
 
 
 def prepare_image(value):
@@ -76,6 +79,7 @@ def questions(prompts=None):
                      'criteria':{'true':'文字や数字の情報が写っている', 'false':'文字や数字の情報は写っていない'}},
         '風景': {'type':'noul', 'instructions':prompts.landscape + guard,
                  'criteria':{'true':'屋外の景観が主な被写体である', 'false':'屋外の景観が主な被写体ではない'}},
+        '白黒': {'type':'noul', 'instructions':prompts.monochrome + guard, 'criteria':{'true':'白黒画像である', 'false':'カラー画像である'}},
         '看板面積': {'type':'choice', 'instructions':prompts.coverage + guard,
                      'criteria':{str(n):f'画像全体の約{n}%（看板なし）' if n == 0 else f'画像全体の約{n}%' for n in range(0, 101, 10)}}
     }
