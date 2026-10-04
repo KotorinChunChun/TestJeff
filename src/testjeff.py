@@ -15,6 +15,7 @@ import urllib.request
 from feedback import Feedback, FeedbackStore
 from resources import ResourceMeter
 from luna import LunaInput, classify
+from photos import PhotoInput, prepare_image, questions as photo_questions
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -113,6 +114,24 @@ def serve(name: str, port: int, device: str) -> None:
     server.app.router.lifespan_context = local_lifespan
     resource_meter = ResourceMeter()
 
+    @server.app.post('/testjeff/photos', dependencies=[Depends(server.authenticate)])
+    def photos(body: PhotoInput):
+        try:
+            picture, source_size, input_size = prepare_image(body.image)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from error
+        if not server.service.lock.acquire(blocking=False):
+            raise HTTPException(409, '別の判定を実行中です。終了後に再実行してください。')
+        try:
+            if name != body.model or server.service.model is None:
+                raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
+            request = server.EvaluationRequest(model=server.service.name, state='添付した1枚の画像を判定してください。',
+                                               images=[picture], questions=photo_questions())
+            result = server.predict(server.service.model, request)
+            return {**result, 'source_size':source_size, 'input_size':input_size}
+        finally:
+            server.service.lock.release()
+
     @server.app.post('/testjeff/luna', dependencies=[Depends(server.authenticate)])
     def luna(body: LunaInput):
         try:
@@ -155,13 +174,22 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/battle', '/battle/'):
             return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path in ('/photos', '/photos/'):
+            return HTMLResponse((ROOT / 'src/photos.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path == '/testjeff/abstract-nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/abstract-nouns.json').read_text(encoding='utf-8')))
-        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js'):
+        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js', '/assets/photos.js'):
             return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
                             media_type='text/javascript')
+        if request.url.path == '/testjeff/photos' and request.method == 'POST':
+            body = bytearray()
+            async for chunk in request.stream():
+                body.extend(chunk)
+                if len(body) > 11_100_000:
+                    return JSONResponse({'detail': '画像は8MB以内にしてください。'}, status_code=413)
+            request._body = bytes(body)
         if request.url.path == '/v1/systemone' and request.method == 'POST':
             body = bytearray()
             async for chunk in request.stream():
