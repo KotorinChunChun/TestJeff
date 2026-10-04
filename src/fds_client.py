@@ -2,6 +2,7 @@
 import copy
 import ipaddress
 import json
+import socket
 import urllib.request
 import urllib.error
 from fastapi import HTTPException
@@ -34,12 +35,14 @@ class FDS:
         payload=json.dumps(body,ensure_ascii=False).encode() if body is not None else None
         request=urllib.request.Request(self.url+path,data=payload,headers={'Content-Type':'application/json'})
         try:
-            with urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect()).open(request,timeout=310 if body else 8) as response:
+            with urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect()).open(request,timeout=125 if body else 8) as response:
                 return json.load(response)
         except urllib.error.HTTPError as error:
             try:detail=json.load(error).get('detail')
             except (ValueError,AttributeError):detail=None
             raise HTTPException(error.code if 400<=error.code<600 else 502,'FDS: '+(detail if isinstance(detail,str) else '要求を処理できませんでした。入力とモデルを確認してください。')) from error
+        except (TimeoutError,socket.timeout) as error:
+            raise HTTPException(504,'FDSの応答待ちが期限を超えました。サーバーで計算が続いている場合があります。') from error
         except (OSError,ValueError) as error:
             raise HTTPException(502,'FDSに接続できないか応答が不正です。IP・ポート・待受を確認してください。自動再送はしていません。') from error
 
@@ -72,7 +75,7 @@ class FDS:
                 q['criteria']={ident:description if isinstance(description,str) else json.dumps(description,ensure_ascii=False) for ident,description in zip(mappings[key],q['criteria'].values())}
         state=payload.get('state','')
         body={'model':MODEL_IDS[selected],'device':self.device,'state':state if isinstance(state,str) else json.dumps(state,ensure_ascii=False),
-              'questions':questions,'images':payload.get('images',[]),'timeout_seconds':300,'priority':'normal'}
+              'questions':questions,'images':payload.get('images',[]),'timeout_seconds':120,'priority':'normal'}
         results=[]
         for turn in range(orders):
             request=copy.deepcopy(body)
