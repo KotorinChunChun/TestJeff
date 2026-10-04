@@ -72,6 +72,7 @@ class PublicConnection(BaseModel):
     mode: Literal['local', 'fds']
     local_device: Literal['cpu', 'cuda'] | None = None
     device: Literal['auto', 'cpu', 'cuda'] | None = None
+    auto_unload: StrictBool | None = None
     host: str | None = Field(default=None, max_length=255)
     port: int | None = Field(default=None, ge=1, le=65535)
     # クライアントの集計領域識別子。認証用APIキーではない。

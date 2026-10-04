@@ -387,7 +387,7 @@ def serve(name: str, port: int, device: str) -> None:
             return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path == '/testjeff/abstract-nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/abstract-nouns.json').read_text(encoding='utf-8')))
-        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js', '/assets/photos.js', '/assets/connection.js', '/assets/noun-combo.js', '/assets/query-comparison.js', '/assets/query-comparison-core.js'):
+        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js', '/assets/photos.js', '/assets/connection.js', '/assets/noun-combo.js', '/assets/query-comparison.js', '/assets/query-comparison-core.js', '/assets/query-autosave.js'):
             return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
                             media_type='text/javascript')
         if request.url.path == '/testjeff/photos' and request.method == 'POST':

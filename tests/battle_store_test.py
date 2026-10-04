@@ -49,6 +49,42 @@ class BattleStoreTest(unittest.TestCase):
         self.assertEqual(BattleStore(self.store.path).get(saved['id']), saved)
         self.assertNotIn('verdict', saved['run']['results']['qwen-2b'][0])
 
+    def test_auto_unload_preserved_in_comparison_records(self):
+        for automatic in (True, False):
+            comparison_id = str(uuid4())
+            for mode in ('single', 'batch'):
+                with self.subTest(auto_unload=automatic, mode=mode):
+                    payload = sample_record()
+                    payload['connection'].update(mode='fds', device='cuda',
+                                                 key='fds:127.0.0.1:8767:cuda', auto_unload=automatic)
+                    payload['run']['batch'] = mode == 'batch'
+                    payload['run']['parameters'].update(comparison_id=comparison_id, comparison_mode=mode,
+                                                         method_order=['single', 'batch'], candidate_count=10)
+                    saved = self.store.save(BattleRecord.model_validate(payload))
+                    restored = BattleStore(self.store.path).get(saved['id'])
+                    self.assertIs(restored['connection']['auto_unload'], automatic)
+                    self.assertEqual(restored['connection'], payload['connection'])
+                    self.assertEqual(restored['run'], payload['run'])
+
+    def test_legacy_connection_without_auto_unload_is_unchanged(self):
+        payload = sample_record()
+        validated = BattleRecord.model_validate(payload)
+        self.assertIsNone(validated.connection.auto_unload)
+        saved = self.store.save(validated)
+        restored = BattleStore(self.store.path).get(saved['id'])
+        self.assertNotIn('auto_unload', restored['connection'])
+        self.assertEqual(restored['connection'], payload['connection'])
+        self.assertEqual(self.store.save(BattleRecord.model_validate(payload)), saved)
+
+    def test_auto_unload_rejects_non_boolean_values(self):
+        for value in ('true', 'false', '', 0, 1, 1.0, [], {}):
+            with self.subTest(value=value):
+                payload = sample_record()
+                payload['connection']['auto_unload'] = value
+                with self.assertRaises(ValidationError) as error:
+                    BattleRecord.model_validate(payload)
+                self.assertIn(('connection', 'auto_unload'), [item['loc'] for item in error.exception.errors()])
+
     def test_repeated_and_simultaneous_saves_are_idempotent(self):
         payload = BattleRecord.model_validate(sample_record())
         with ThreadPoolExecutor(max_workers=6) as executor:

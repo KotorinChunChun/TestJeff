@@ -4,6 +4,7 @@ const root=path.join(__dirname,'..'),source=name=>fs.readFileSync(path.join(root
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 const ids=['qwen-2b','gemma-e2b'],slots=[...ids,'',''],count=10,token='test-only-approval-not-for-records';
 const apiIds=Object.fromEntries(require('../src/battle-core.js').models.map(model=>[model.id,model.api]));
+const autosaveApi=require('../src/query-autosave.js');
 
 class Element {
  constructor(tag='div'){
@@ -83,6 +84,7 @@ async function scenario({page,batch=false,reverse=false,failFirst=false,cancel=f
   setInterval:()=>1,clearInterval:()=>{},setTimeout,clearTimeout,AbortSignal:{timeout:()=>new AbortController().signal},fetch:originalFetch,
   NounCombo:{attach:()=>({destroy(){},setDisabled(){}})}});
  context.window=context;
+ const outbox=new Map();context.QueryAutosave={...autosaveApi,indexedStore:()=>({load:async()=>[...outbox.values()],put:async value=>outbox.set(value.comparison_id,structuredClone(value)),remove:async id=>outbox.delete(id)})};
  for(const file of ['connection.js','nouns-core.js','battle-core.js','query-comparison-core.js'])vm.runInContext(source(file),context,{filename:file});
  // ヘッダー配置は別のブラウザー試験が担当。初期接続済みの状態から実行処理を検証する。
  context.TestJeffConnection.capabilities=state();
@@ -95,6 +97,7 @@ async function scenario({page,batch=false,reverse=false,failFirst=false,cancel=f
   const before=events.length;await tick();assert.equal(events.length,before,'準備応答を保留している間は後続のAPIを送らない');gate.resolve();
  }
  assert(done,'模擬実行が終了する');await running;if(failure)throw failure;
+ if(page==='query-comparison'){await vm.runInContext('autosave.flush()',context);vm.runInContext('autosave.dispose()',context);}
  assert.equal(get('error').textContent,'');assert.equal(records.length,page==='battle'?1:2);
  const succeeded=failFirst?[ids[1]]:cancel?[ids[0]]:ids;
  for(const record of records){
