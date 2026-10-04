@@ -127,7 +127,7 @@ pwsh -NoProfile -File .\dev\scripts\jeff.ps1 serve --model gemma-e2b
 | gemma-e2b | Jeff-Gemma4-E2B | 11GiB以上 |
 
 空き容量は短文実験用の保守的な目安です。実測値は [検証結果](dev/testing/RESULTS.md) を参照してください。
-GPUメモリ不足時は小さいモデルを使うか、起動時に `--device cpu` を付けます。CPU経路は用意していますが今回の実測対象外で、GPUより遅くなります。
+GPUメモリ不足時は小さいモデルを使うか、画面のデバイスでCPUを選びます。起動時は `--device cpu` も使えます。2026-10-04、Qwen 2Bで画面からのGPU→CPU→GPU切替と両デバイスの日本語判定を実機確認しました。
 1モデルずつ常駐、質問は1件ずつ推論、最大4質問、本文32KiBまで、画像なし。PyTorchの割り当て上限をGPU総容量の85%にしています。ほかのGPUアプリの使用量や入力長によってはメモリ不足になるため、その場合は503を返します。
 
 ## APIを試す
