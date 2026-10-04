@@ -1,0 +1,58 @@
+{
+  "fixture": "文字のない山と湖の合成画像（写真精度の試験ではない）",
+  "records": [
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "文字情報": {
+          "type": "noul",
+          "noul": 0.010957571320687424
+        },
+        "風景": {
+          "type": "noul",
+          "noul": 0.9396617131566831
+        }
+      },
+      "usage": {
+        "input_tokens": 786,
+        "output_tokens": 0,
+        "orders": 1
+      },
+      "source_size": [
+        640,
+        400
+      ],
+      "input_size": [
+        640,
+        400
+      ]
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "文字情報": {
+          "type": "noul",
+          "noul": 0.020613656350706874
+        },
+        "風景": {
+          "type": "noul",
+          "noul": 0.4712184982765616
+        }
+      },
+      "usage": {
+        "input_tokens": 786,
+        "output_tokens": 0,
+        "orders": 1
+      },
+      "source_size": [
+        640,
+        400
+      ],
+      "input_size": [
+        640,
+        400
+      ]
+    }
+  ],
+  "invalidStatus": 422
+}

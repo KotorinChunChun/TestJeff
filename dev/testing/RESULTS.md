@@ -1,5 +1,15 @@
 # 実機検証結果
 
+## v0.8.0 Qwen画像判定（2026-10-04）
+
+- /photosで画像選択後に自動判定。文字情報と風景は独立したnoul二問。画像1枚をメモリ内で向き補正・長辺1024px以下・JPEG化して固定版Jeffの画像推論へ渡す。既存テキストAPIの画像拒否は維持。
+- Qwen 2B/0.8Bの実GPU試験: 日本語の営業時間を描いた合成画像に対する文字情報確率は97.4%/95.0%、風景確率0.8%/4.5%。両モデルとも文字あり・風景ではないと判定。
+- 文字のない山と湖の合成画像に対する文字情報確率は1.1%/2.1%、風景確率94.0%/47.1%。0.8Bは風景を否定した。既定モデルは2B。モデル差があり、実写真全般の精度を保証する試験ではない。
+- Python試験で形式・画素数・縮小・透過の白背景化・EXIF除去を確認。Edge模擬試験で画像選択・モデル切り替え・独立二判定・エラー時の旧結果消去を確認。実HTTPで不正base64に422を確認。npm test成功。
+- 画像と結果は永続保存・クラウド送信しない。試験の合成画像の判定結果のみ記録。画像を読み取って文字起こしする機能は含まない。
+
+証跡: [photos-v080-text.json](photos-v080-text.json)、[photos-v080-landscape.json](photos-v080-landscape.json)。画面画像はdev/testing/output/photos-live.png、photos-landscape.png。再実行は専用環境でtests/photos_test.py、およびLIVE_URLを指定してnode tests/photos-browser.cjs（文字画像と両モデル）を使用する。
+
 ## v0.7.0 GPT-5.6-LunaのCodex CLI比較（2026-10-04）
 
 - Codex CLI 0.156.1を使い、gpt-5.6-luna・reasoning lowを固定。read-only、ephemeral、ユーザー設定非読込、shell/multi-agent/web search無効で実行。JSON schemaで真偽だけを取得し、確率は生成しない。

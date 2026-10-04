@@ -1,0 +1,58 @@
+{
+  "fixture": "日本語の営業時間を描いた合成画像（写真精度の試験ではない）",
+  "records": [
+    {
+      "model": "jeff-qwen3.5-2b",
+      "answers": {
+        "文字情報": {
+          "type": "noul",
+          "noul": 0.9740206187272195
+        },
+        "風景": {
+          "type": "noul",
+          "noul": 0.007906180475113801
+        }
+      },
+      "usage": {
+        "input_tokens": 626,
+        "output_tokens": 0,
+        "orders": 1
+      },
+      "source_size": [
+        512,
+        320
+      ],
+      "input_size": [
+        512,
+        320
+      ]
+    },
+    {
+      "model": "jeff-qwen3.5-0.8b",
+      "answers": {
+        "文字情報": {
+          "type": "noul",
+          "noul": 0.9497385651029011
+        },
+        "風景": {
+          "type": "noul",
+          "noul": 0.04503644224229125
+        }
+      },
+      "usage": {
+        "input_tokens": 626,
+        "output_tokens": 0,
+        "orders": 1
+      },
+      "source_size": [
+        512,
+        320
+      ],
+      "input_size": [
+        512,
+        320
+      ]
+    }
+  ],
+  "errors": []
+}
