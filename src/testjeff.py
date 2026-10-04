@@ -1,5 +1,6 @@
 """専用環境で公式Jeffを取得・起動・実測する。"""
 from __future__ import annotations
+from fastapi import Request
 
 import argparse
 import base64

@@ -35,6 +35,16 @@ class FDSTest(unittest.TestCase):
         self.assertEqual(result['answers']['質問']['noul'],.8)
         self.assertEqual(list(requests[1]['questions']['質問']['criteria']),['option_1','option_0'])
 
+    def test_three_models(self):
+        from fds_client import MODEL_IDS
+        for selected,remote_id in MODEL_IDS.items():
+            client=FDS('127.0.0.1',8767)
+            def call(path,body):
+                self.assertEqual(body['model'],remote_id)
+                return {'model':remote_id,'answers':{'質問':{'type':'noul','noul':.9}}}
+            client.call=call
+            self.assertEqual(client.predict({'questions':{'質問':{'type':'noul'}}},selected)['execution']['model'],remote_id)
+
     def test_failure_no_retry(self):
         client=FDS('127.0.0.1',8767);calls=[]
         def call(*args):

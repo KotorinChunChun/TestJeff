@@ -24,6 +24,7 @@ window.fetch=async(input,options={})=>{
 };
 window.addEventListener('testjeff-busy',lock);
 window.addEventListener('DOMContentLoaded',()=>{
+ const style=document.createElement('style');style.textContent='#connection-form [hidden]{display:none!important}#connection-form label{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}#connection-form input,#connection-form select{width:auto;margin:0;padding:6px;min-width:0}#connection-form button{width:auto;padding:6px 10px}';document.head.append(style);
  const panel=document.createElement('form');panel.id='connection-form';panel.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;margin:8px 0;border:1px solid #cbd8cd;border-radius:8px;font:14px system-ui';
  panel.innerHTML='<label>処理先 <select id="backend"><option value="local">ローカル</option><option value="fds">サーバー（FDS）</option></select></label><label>IP <input id="fds-host" size="16" aria-label="FDSのIPアドレス"></label><label>ポート <input id="fds-port" type="number" min="1" max="65535" style="width:85px"></label><label>デバイス <select id="fds-device"><option value="auto">自動</option><option value="cuda">GPU</option><option value="cpu">CPU</option></select></label><button type="button" id="fds-check">接続確認</button><button type="submit" id="connection-apply">適用</button><span id="connection-status" role="status"></span>';
  (document.querySelector('main')||document.body).prepend(panel);
