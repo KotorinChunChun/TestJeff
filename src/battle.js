@@ -1,6 +1,14 @@
 'use strict';
 const $=id=>document.getElementById(id), allModels=BattleCore.models, storageBase='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
+let battleTimer=null;
+function showBattleWait(){
+  hideBattleWait();const started=performance.now();
+  const update=()=>{$('battle-elapsed').textContent=`${Math.floor((performance.now()-started)/1000)}秒`;$('battle-wait-progress').textContent=$('progress').textContent;};
+  $('battle-elapsed').textContent='0秒';$('battle-wait-progress').textContent='準備中';$('battle-wait').classList.remove('hidden');
+  battleTimer=setInterval(update,200);
+}
+function hideBattleWait(){if(battleTimer!==null)clearInterval(battleTimer);battleTimer=null;$('battle-wait').classList.add('hidden');}
 const defaultSlots=allModels.map(m=>m.id);
 let slots=[...defaultSlots];try{const saved=JSON.parse(localStorage.getItem('testjeff-battle-slots'));if(Array.isArray(saved)&&saved.length===4&&saved.every(id=>id===''||defaultSlots.includes(id))&&new Set(saved.filter(Boolean)).size===saved.filter(Boolean).length)slots=saved;}catch{}
 let models=slots.map(id=>allModels.find(m=>m.id===id)||{id:'',name:'未選択',inactive:true});
@@ -141,8 +149,9 @@ async function battle(){
   if(!models.some(m=>!m.inactive)){error('比較するモデルを選択してください。');return;}
   clearReviews();setBusy(true);stop=false;let original=null;
   const local=models.filter(m=>!m.cloud&&!m.inactive),offset=(stats?.runs||0)%(local.length||1),order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
-  run={selected_models:models.filter(m=>!m.inactive).map(m=>m.id),columns:[...slots],batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
+  run={selected_models:models.filter(m=>!m.inactive).map(m=>m.id),columns:[...slots],batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};
   try{
+    showBattleWait();render();
     try{if(local.length)original=(await api('/testjeff/status')).selected;}catch(e){run.connection_error=e.message;}
     for(const m of order){
       if(stop)break;
@@ -180,7 +189,7 @@ async function battle(){
   finally{
     if(original){$('progress').textContent='元のモデルに戻しています';try{await api('/testjeff/model',{model:original});}catch(e){error(`元のモデルに戻せませんでした。${e.message}`);}}
     $('progress').textContent=run.status==='完了'?(Object.keys(run.skipped).length?`${BattleCore.measured(run).length}モデル計測完了・${Object.keys(run.skipped).length}モデル計測不能`:`${run.selected_models.length*10} / ${run.selected_models.length*10}件完了`):`${run.status}・累積には加算していません`;
-    setBusy(false);render();
+    hideBattleWait();setBusy(false);render();
   }
 }
 $('start').onclick=battle;
