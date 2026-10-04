@@ -34,5 +34,6 @@
 | ローカルCPU/GPU・対戦入力保持 | src/connection.js、tests/local_device_test.py、tests/connection-local-browser.cjs、tests/local-device-live-browser.cjs、dev/history/v0.16.0/v0.16.0-imp.md |
 | 対戦保存・全候補コンボ・JSON再現情報 | src/battle_store.py、src/noun-combo.js、src/reproduction.py、tests/battle_store_test.py、tests/battle-history-browser.cjs、tests/reproduction_test.py、tests/battle-storage-live-browser.cjs、dev/history/v0.17.0/v0.17.0-imp.md |
 | 可変件数・問い合わせ速度比較 | src/query-comparison.html、src/query-comparison.js、src/query-comparison-core.js、tests/battle-count-browser.cjs、tests/query-comparison-browser.cjs、tests/battle_batch_test.py、dev/history/v0.18.0/v0.18.0-imp.md |
+| 対戦表示・合計順位・不一致フィルター | src/battle.html、src/battle.js、src/battle-core.js、tests/battle.test.cjs、tests/battle-display-browser.cjs、dev/history/v0.19.0/v0.19.0-imp.md |
 | 品質評価ナレッジ | src/knowledge.py、tests/knowledge_test.py、dev/history/v0.9.0/v0.9.0-imp.md |
 | 配布 | dev/RELEASE_RULE.md |

@@ -13,7 +13,34 @@
   }
   function participants(run){const ids=run.selected_models??models.map(m=>m.id);if(!Array.isArray(ids)||!ids.length||ids.length>4||new Set(ids).size!==ids.length||ids.some(id=>!models.some(m=>m.id===id)))return [];return ids.map(id=>models.find(m=>m.id===id));}
   function candidateCount(run){if(run.candidates===undefined)return 10;return Array.isArray(run.candidates)&&run.candidates.length>=1&&run.candidates.length<=100?run.candidates.length:0;}
-  function measured(run){const count=candidateCount(run);return count?participants(run).filter(m=>run.results[m.id]?.length===count&&run.results[m.id].every(x=>Number.isFinite(x.ms)&&x.ms>=0&&(m.cloud?typeof x.verdict==='boolean':Number.isFinite(x.probability)&&x.probability>=0&&x.probability<=1))):[];}
+  function measured(run){const count=candidateCount(run);return count?participants(run).filter(m=>run.results[m.id]?.length===count&&run.results[m.id].every(x=>x&&Number.isFinite(x.ms)&&x.ms>=0&&(m.cloud?typeof x.verdict==='boolean':Number.isFinite(x.probability)&&x.probability>=0&&x.probability<=1))):[];}
+  function rankings(run){
+    if(!run?.results)return [];
+    const ranked=[];
+    for(const model of measured(run)){
+      if(Object.hasOwn(run.skipped||{},model.id))continue;
+      let totalMs;
+      if(Object.hasOwn(run.query_totals||{},model.id)){
+        const total=run.query_totals[model.id];
+        if(total?.complete!==true||!Number.isFinite(total.total_ms)||total.total_ms<0)continue;
+        totalMs=total.total_ms;
+      }else totalMs=summarize(run.results[model.id]).totalMs;
+      if(Number.isFinite(totalMs)&&totalMs>=0)ranked.push({id:model.id,totalMs});
+    }
+    ranked.sort((a,b)=>a.totalMs-b.totalMs);
+    let rank=0;
+    return ranked.map((item,index)=>{if(!index||item.totalMs!==ranked[index-1].totalMs)rank=index+1;return {...item,rank};});
+  }
+  function hasMismatch(items,expected='未評価'){
+    const judgments=new Set();
+    for(const item of items||[]){
+      if(typeof item?.verdict==='boolean')judgments.add(item.verdict);
+      else if(Number.isFinite(item?.probability)&&item.probability>=0&&item.probability<=1)judgments.add(item.probability>=.5);
+    }
+    if(expected==='です')judgments.add(true);
+    else if(expected==='ではありません')judgments.add(false);
+    return judgments.size===2;
+  }
   function complete(run){const valid=measured(run);return valid.length>0&&participants(run).every(m=>valid.includes(m)||typeof run.skipped?.[m.id]==='string')&&Object.keys(run.results).every(id=>participants(run).some(m=>m.id===id));}
   function compare(run){
     if(!complete(run))throw Error('利用可能なモデルの計測完了が必要です。');
@@ -35,6 +62,6 @@
       next.models[m.id]={count:old.count+s.count,totalMs:old.totalMs+s.totalMs,yes:old.yes+s.yes,probabilitySum:old.probabilitySum+s.probabilitySum,wins:old.wins+comparison.wins[m.id]};}
     return next;
   }
-  const api={models,participants,candidateCount,positive,summarize,measured,complete,compare,accumulate};
+  const api={models,participants,candidateCount,positive,summarize,measured,rankings,hasMismatch,complete,compare,accumulate};
   if(typeof module!=='undefined')module.exports=api;else root.BattleCore=api;
 })(globalThis);

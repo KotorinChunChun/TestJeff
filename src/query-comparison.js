@@ -35,7 +35,20 @@ function render(){const records=displayed?.records,first=records?.single?.run||r
  if(!both&&[s?.status,b?.status].includes('中止'))state.append(node('div','中止','sub'));tr.append(state);const detail=node('td'),button=node('button','詳細');button.onclick=()=>showDetail(id);detail.append(button);tr.append(detail);$('comparison-results').append(tr);}
  controls();}
 function showDetail(id){const records=displayed.records,run=records.single?.run||records.batch?.run,model=allModels.find(m=>m.id===id);$('detail-title').textContent=`${model?.name||id} — 「${run.target}」`;
- const table=node('table'),head=node('thead'),heading=node('tr');for(const label of ['候補','個別の判定','個別応答','一括の判定','一括平均/件'])heading.append(node('th',label));head.append(heading);table.append(head);const body=node('tbody');run.candidates.forEach((word,i)=>{const row=node('tr');row.append(node('td',word));for(const mode of methods){const saved=records[mode]?.run,item=saved?.results?.[id]?.[i]||saved?.partial_results?.[id]?.[i];row.append(node('td',item?`「${word}」は「${run.target}」${BattleCore.positive(item)?'です':'ではありません'}`:'未計測',item?(BattleCore.positive(item)?'yes':'no'):''),node('td',item?`${item.ms.toFixed(1)} ms${typeof item.probability==='number'?'・'+(item.probability*100).toFixed(1)+'%':''}`:'—','number'));}body.append(row);});table.append(body);
+ const table=node('table'),head=node('thead'),heading=node('tr');
+ for(const label of ['候補','個別の判定','個別応答','一括の判定'])heading.append(node('th',label));
+ head.append(heading);table.append(head);const body=node('tbody');
+ run.candidates.forEach((word,i)=>{
+  const row=node('tr');row.append(node('td',word));
+  for(const mode of methods){
+   const saved=records[mode]?.run,item=saved?.results?.[id]?.[i]||saved?.partial_results?.[id]?.[i];
+   const cell=node('td',item?`「${word}」は「${run.target}」${BattleCore.positive(item)?'です':'ではありません'}`:'未計測',item?(BattleCore.positive(item)?'yes':'no'):'');
+   if(Number.isFinite(item?.probability))cell.append(node('div',`${(item.probability*100).toFixed(1)}%`,'number'));
+   row.append(cell);
+   if(mode==='single')row.append(node('td',item?`${item.ms.toFixed(1)} ms`:'—','number'));
+  }
+  body.append(row);
+ });table.append(body);
  const details=node('details'),summary=node('summary','実行設定');details.append(summary,node('pre',JSON.stringify(Object.fromEntries(methods.map(mode=>[mode,{connection:records[mode]?.connection,parameters:records[mode]?.run.parameters,execution:records[mode]?.run.execution[id]}])),null,2)));$('detail-content').replaceChildren(table,details);$('detail-dialog').showModal();}
 $('close-detail').onclick=()=>$('detail-dialog').close();
 function actualExecution(item){const execution=item.execution||item.reproduction?.execution;if(!execution)return null;return execution.backend==='codex_cli'?{...execution,source:item.source||execution.source||'Codex CLI',device:execution.device??null,revision:execution.revision??null}:execution;}

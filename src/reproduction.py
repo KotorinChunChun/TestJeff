@@ -27,7 +27,7 @@ def application():
             packages[package] = version(package)
         except PackageNotFoundError:
             packages[package] = None
-    return {'name':'TestJeff', 'version':'0.18.0', 'source_sha256':digest.hexdigest(),
+    return {'name':'TestJeff', 'version':'0.19.0', 'source_sha256':digest.hexdigest(),
             'python':platform.python_version(), 'platform':platform.platform(), 'packages':packages}
 
 

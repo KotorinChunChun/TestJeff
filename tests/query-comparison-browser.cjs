@@ -27,6 +27,8 @@ async function download(page){const pending=page.waitForEvent('download');await 
   return route.fulfill({status:404});
  });
  await page.goto('http://127.0.0.1:18766/query-comparison');await page.locator('#start:not([disabled])').waitFor();
+ assert.equal(await page.locator('#random').textContent(),'ランダムに変更');
+ assert.equal(await page.locator('#start').evaluate(n=>getComputedStyle(n).backgroundColor),await page.locator('#random').evaluate(n=>getComputedStyle(n).backgroundColor));
  // 全候補コンボ・件数配置と、1/10/30/100件で両方式が同じA/Bを送ること。
  await page.getByRole('button',{name:'質問する名詞の一覧を開く'}).click();assert(await page.locator('.noun-combo-popup:not([hidden]) [role=option]').count()>10);await page.keyboard.press('Escape');
  for(const count of [1,10,30,100]){
@@ -40,6 +42,14 @@ async function download(page){const pending=page.waitForEvent('download');await 
   const sent=requests.slice(before),single=sent.filter(x=>x.kind==='single'),batch=sent.filter(x=>x.kind==='batch');assert.equal(single.length,count);assert.equal(batch.length,1);assert.equal(sent.filter(x=>x.kind==='warmup').length,2);assert.deepEqual(single.map(x=>x.body.state.対象),batch[0].body.candidates);assert.equal(batch[0].body.target,value.records.single.run.target);
   for(const mode of ['single','batch']){const run=value.records[mode].run,total=run.query_totals['qwen-0.8b'];assert.equal(total.count,count);assert.equal(total.complete,true);assert.equal(run.parameters.candidate_count,count);assert.equal(run.results['qwen-0.8b'].length,count);assert(run.warmup['qwen-0.8b'].reproduction);assert.equal(run.execution['qwen-0.8b'].device,'cpu');assert(total.total_ms+2>=total.response_sum_ms);if(count===1)assert(total.total_ms<200,'ロード・予備判定の待ちを合計から除外');}
   assert(value.records.batch.run.parameters.batch_execution['qwen-0.8b']);assert.equal(value.metrics['qwen-0.8b'].comparable,true);assert(!(await page.locator('#comparison-wait').isVisible()));
+  await page.locator('#comparison-results tr').first().getByRole('button',{name:'詳細',exact:true}).click();
+  assert.deepEqual(await page.locator('#detail-content thead th').allTextContents(),['候補','個別の判定','個別応答','一括の判定']);
+  assert.equal(await page.locator('#detail-content tbody tr').count(),count);
+  assert.match(await page.locator('#detail-content tbody tr').first().locator('td').nth(2).textContent(),/ms/);
+  assert.doesNotMatch(await page.locator('#detail-content tbody tr').first().locator('td').nth(3).textContent(),/ms|平均/);
+  assert.match(await page.locator('#detail-content tbody tr').first().locator('td').nth(3).textContent(),/70.0%/);
+  assert(value.records.batch.run.results['qwen-0.8b'][0].ms>=0,'表示を除いても計測JSONは保持');
+  await page.locator('#close-detail').click();
  }
  // 編集中のA/Bを履歴表示で上書きせず、2方式の保存結果を復元する。
  const prior=await download(page);await page.locator('#target').fill('持ち歩く物');await page.locator('input[aria-label="候補1"]').fill('買い物袋');await page.locator('#refresh-history').click();await page.waitForFunction(()=>document.getElementById('history-select').options.length>1);await page.locator('#history-select').selectOption(prior.comparison_id);await page.waitForFunction(()=>document.getElementById('history-status').textContent==='保存結果を表示中');assert.equal(await page.locator('#target').inputValue(),'持ち歩く物');assert.equal(await page.locator('input[aria-label="候補1"]').inputValue(),'買い物袋');const restored=await download(page);assert.deepEqual(restored.records,prior.records);

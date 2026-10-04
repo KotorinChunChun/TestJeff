@@ -32,3 +32,54 @@ const legacy={runs:2,comparisons:2,agreement:18,models:{'qwen-0.8b':{count:20,to
 const single={candidates:['物'],selected_models:['qwen-0.8b','qwen-2b'],results:{'qwen-0.8b':[{ms:1,probability:.8}],'qwen-2b':[{ms:2,probability:.8}]}};
 assert.equal(core.accumulate(legacy,single).comparison_items,21);assert.equal(core.accumulate(legacy,single).agreement,19);
 console.log('1/30/100件の一致数・最速件数・集計分母・旧10件累積からの移行を確認しました。');
+
+function rankingRun(totals){return {
+ candidates:['犬','猫'],selected_models:core.models.map(model=>model.id),status:'完了',
+ results:Object.fromEntries(core.models.map((model,index)=>[model.id,[0,1].map(()=>({ms:index+1,...(model.cloud?{verdict:true}:{probability:.9})}))])),
+ ...(totals?{query_totals:Object.fromEntries(core.models.map((model,index)=>[model.id,{total_ms:totals[index],complete:true}]))}:{})
+};}
+const wallTimeRun=rankingRun([100,60,70,90]),untouched=JSON.stringify(wallTimeRun);
+assert.deepEqual(core.rankings(wallTimeRun),[
+ {id:'qwen-2b',totalMs:60,rank:1},{id:'gemma-e2b',totalMs:70,rank:2},
+ {id:'gpt-5.6-luna',totalMs:90,rank:3},{id:'qwen-0.8b',totalMs:100,rank:4}
+]);
+assert.equal(JSON.stringify(wallTimeRun),untouched);
+assert.deepEqual(core.rankings({...wallTimeRun,batch:true}),core.rankings(wallTimeRun));
+assert.deepEqual(core.rankings(rankingRun([0,0,8,12])).map(item=>item.rank),[1,1,3,4]);
+assert.deepEqual(core.rankings(rankingRun([10,10,10,10])).map(item=>item.rank),[1,1,1,1]);
+assert.deepEqual(core.rankings(rankingRun()).map(item=>[item.totalMs,item.rank]),[[2,1],[4,2],[6,3],[8,4]]);
+const partlyLegacy=rankingRun([100,60,70,90]);delete partlyLegacy.query_totals['qwen-0.8b'];
+assert.deepEqual(core.rankings(partlyLegacy)[0],{id:'qwen-0.8b',totalMs:2,rank:1});
+for(const invalid of [null,{}, {complete:false,total_ms:1},{complete:'true',total_ms:1},
+ {complete:true,total_ms:NaN},{complete:true,total_ms:Infinity},{complete:true,total_ms:-1},{complete:true,total_ms:'1'}]){
+ const value=rankingRun([100,60,70,90]);value.query_totals['qwen-0.8b']=invalid;
+ assert(!core.rankings(value).some(item=>item.id==='qwen-0.8b'));
+}
+const failed=rankingRun([100,60,70,90]);failed.results['qwen-0.8b'].pop();failed.skipped={'qwen-2b':'応答失敗'};failed.results['gemma-e2b'][0]=null;
+assert.deepEqual(core.rankings(failed),[{id:'gpt-5.6-luna',totalMs:90,rank:1}]);
+failed.skipped['gpt-5.6-luna']='計測不能';assert.deepEqual(core.rankings(failed),[]);
+assert.deepEqual(core.rankings(null),[]);assert.deepEqual(core.rankings({results:{}}),[]);
+assert.deepEqual(core.rankings({...wallTimeRun,candidates:[]}),[]);
+assert.deepEqual(core.rankings({...wallTimeRun,selected_models:['unknown']}),[]);
+console.log('合計時間による順位・個別/一括・同順位・旧記録・不完全/計測不能の除外を確認しました。');
+
+assert.equal(core.hasMismatch([{probability:.5},{verdict:true}]),false);
+assert.equal(core.hasMismatch([{probability:.49},{verdict:false}]),false);
+assert.equal(core.hasMismatch([{probability:.5},{probability:.49}]),true);
+assert.equal(core.hasMismatch([{verdict:false},{verdict:true}]),true);
+assert.equal(core.hasMismatch([{probability:.9}],'ではありません'),true);
+assert.equal(core.hasMismatch([{probability:.1}],'です'),true);
+assert.equal(core.hasMismatch([{probability:.9}],'です'),false);
+assert.equal(core.hasMismatch([{probability:.1}],'ではありません'),false);
+for(const expected of ['未評価','判断困難','理由だけの補足','',undefined]){
+ assert.equal(core.hasMismatch([{verdict:true}],expected),false);
+ assert.equal(core.hasMismatch([{verdict:false},{verdict:true}],expected),true);
+}
+const invalidPredictions=[undefined,null,{}, {probability:NaN},{probability:Infinity},{probability:-.1},{probability:1.1},{probability:'0.9'},{verdict:'false'}];
+assert.equal(core.hasMismatch(invalidPredictions),false);
+assert.equal(core.hasMismatch(invalidPredictions,'です'),false);
+assert.equal(core.hasMismatch(invalidPredictions,'ではありません'),false);
+assert.equal(core.hasMismatch([...invalidPredictions,{verdict:false}],'です'),true);
+assert.equal(core.hasMismatch([],'です'),false);
+assert.equal(core.hasMismatch([],'ではありません'),false);
+console.log('モデル間・ユーザー評価との不一致、判断困難/無効値の除外を確認しました。');
