@@ -17,8 +17,9 @@ const destinations=['/','/query-comparison','/battle','/nouns','/photos','/class
   for(const path of ['/','/nouns','/battle','/query-comparison','/photos','/classification']){
    await page.goto(base+path);
    await page.waitForFunction(()=>!document.getElementById('backend').disabled);
-   assert.deepEqual(await page.locator('header nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),destinations,`${mode} ${path} 全ページへのリンク`);
-   assert.equal(await page.locator('header nav>a[aria-current="page"]').getAttribute('href'),path);
+   assert.deepEqual(await page.locator('header nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),['/'],`${mode} ${path} 右上はトップのみ`);
+   assert.equal(await page.locator('header nav>a[aria-current="page"]').count(),path==='/'?1:0);
+   if(path==='/')assert.deepEqual(await page.locator('main>.page-nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),destinations.slice(1),'トップ本文に全検証ページの入口');
    if(path==='/nouns')assert.equal(await page.locator('header nav>#download-feedback').count(),1,'ページ固有の記録ダウンロードも保持');
    for(const width of [1400,1078,390]){
     await page.setViewportSize({width,height:1000});
@@ -56,12 +57,13 @@ const destinations=['/','/query-comparison','/battle','/nouns','/photos','/class
      await row.evaluate(row=>row.scrollLeft=0);
     }
    }
-   const destination=destinations[(destinations.indexOf(path)+1)%destinations.length];
-   await page.locator(`header nav>a[href="${destination}"]`).click();
+   if(path!=='/'){await page.locator('header nav>a[href="/"]').click();await page.waitForURL(base+'/');}
+   const destination=path==='/'?'/query-comparison':path;
+   await page.locator(`main>.page-nav>a[href="${destination}"]`).click();
    await page.waitForURL(base+destination);await page.waitForFunction(()=>!document.getElementById('backend').disabled);
-   assert.equal(await page.locator('header nav>a[aria-current="page"]').getAttribute('href'),destination,'右上メニューで移動');
+   assert.deepEqual(await page.locator('header nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),['/'],'トップ本文から移動後も右上はトップのみ');
   }
   assert.deepEqual(errors,[]);await context.close();
  }
- console.log('全6ページの相互リンク・メニューからの遷移・設定とnavの1行配置を確認。local/FDS×1400/1078/390px、改行と重複なし・ヘッダー内スクロール・ページ横はみ出しなし');
+ console.log('全6ページのトップリンク・トップ本文から各検証ページへの遷移・設定とnavの1行配置を確認。local/FDS×1400/1078/390px、改行と重複なし・ヘッダー内スクロール・ページ横はみ出しなし');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

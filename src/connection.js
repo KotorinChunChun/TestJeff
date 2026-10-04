@@ -130,7 +130,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  const navigation=header?.querySelector('nav');
  if(navigation){
   const actions=[...navigation.children].filter(child=>child.tagName!=='A');
-  const pages=[['/','トップページ'],['/query-comparison','問い合わせ速度比較'],['/battle','モデル対戦'],['/nouns','名詞判定'],['/photos','文字風景判定'],['/classification','画像分類']];
+  const pages=[['/','トップページ']];
   const links=pages.map(([href,label])=>{const link=document.createElement('a');link.href=href;link.textContent=label;if(location.pathname===href)link.setAttribute('aria-current','page');return link;});
   navigation.setAttribute('aria-label','ページ移動');navigation.replaceChildren(...links,...actions);
  }
