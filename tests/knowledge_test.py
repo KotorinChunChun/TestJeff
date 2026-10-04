@@ -41,6 +41,11 @@ class KnowledgeTest(unittest.TestCase):
             saved = store.save_evaluation(Evaluation(event_id=uuid4(), run=partial, annotations=annotations))
             self.assertEqual(set(saved['scores']), {MODELS[0]})
             self.assertEqual(len(saved['run']['skipped']), 3)
+            selected_run = {**partial, 'id':str(uuid4()), 'skipped':{}, 'selected_models':[MODELS[0]], 'columns':[MODELS[0],'','','']}
+            selected_saved = store.save_evaluation(Evaluation(event_id=uuid4(), run=selected_run, annotations=annotations))
+            self.assertEqual(selected_saved['run']['selected_models'], [MODELS[0]])
+            with self.assertRaises(ValidationError):
+                Evaluation(event_id=uuid4(), run={**selected_run,'selected_models':[]}, annotations=annotations)
             run['results'][MODELS[0]].pop()
             with self.assertRaises(ValidationError):
                 Evaluation(event_id=uuid4(), run=run, annotations=annotations)

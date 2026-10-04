@@ -11,8 +11,9 @@
       median:times.length?(times[Math.floor((times.length-1)/2)]+times[Math.floor(times.length/2)])/2:0,
       yes:items.filter(positive).length,probabilitySum:items.reduce((a,b)=>a+(b.probability??0),0)};
   }
-  function measured(run){return models.filter(m=>run.results[m.id]?.length===10&&run.results[m.id].every(x=>Number.isFinite(x.ms)&&x.ms>=0&&(m.cloud?typeof x.verdict==='boolean':Number.isFinite(x.probability)&&x.probability>=0&&x.probability<=1)));}
-  function complete(run){const valid=measured(run);return valid.length>0&&models.every(m=>valid.includes(m)||typeof run.skipped?.[m.id]==='string');}
+  function participants(run){const ids=run.selected_models??models.map(m=>m.id);if(!Array.isArray(ids)||!ids.length||ids.length>4||new Set(ids).size!==ids.length||ids.some(id=>!models.some(m=>m.id===id)))return [];return ids.map(id=>models.find(m=>m.id===id));}
+  function measured(run){return participants(run).filter(m=>run.results[m.id]?.length===10&&run.results[m.id].every(x=>Number.isFinite(x.ms)&&x.ms>=0&&(m.cloud?typeof x.verdict==='boolean':Number.isFinite(x.probability)&&x.probability>=0&&x.probability<=1)));}
+  function complete(run){const valid=measured(run);return valid.length>0&&participants(run).every(m=>valid.includes(m)||typeof run.skipped?.[m.id]==='string')&&Object.keys(run.results).every(id=>participants(run).some(m=>m.id===id));}
   function compare(run){
     if(!complete(run))throw Error('利用可能なモデルの計測完了が必要です。');
     const active=measured(run),wins=Object.fromEntries(models.map(m=>[m.id,0]));let agreement=0;
@@ -33,6 +34,6 @@
       next.models[m.id]={count:old.count+s.count,totalMs:old.totalMs+s.totalMs,yes:old.yes+s.yes,probabilitySum:old.probabilitySum+s.probabilitySum,wins:old.wins+comparison.wins[m.id]};}
     return next;
   }
-  const api={models,positive,summarize,measured,complete,compare,accumulate};
+  const api={models,participants,positive,summarize,measured,complete,compare,accumulate};
   if(typeof module!=='undefined')module.exports=api;else root.BattleCore=api;
 })(globalThis);

@@ -1,22 +1,44 @@
 'use strict';
-const $=id=>document.getElementById(id), models=BattleCore.models, storageBase='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
+const $=id=>document.getElementById(id), allModels=BattleCore.models, storageBase='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
+const defaultSlots=allModels.map(m=>m.id);
+let slots=[...defaultSlots];try{const saved=JSON.parse(localStorage.getItem('testjeff-battle-slots'));if(Array.isArray(saved)&&saved.length===4&&saved.every(id=>id===''||defaultSlots.includes(id))&&new Set(saved.filter(Boolean)).size===saved.filter(Boolean).length)slots=saved;}catch{}
+let models=slots.map(id=>allModels.find(m=>m.id===id)||{id:'',name:'未選択',inactive:true});
+function statsKey(){return storageBase+($('batch-mode').checked?':batch':'')+(JSON.stringify(slots)===JSON.stringify(defaultSlots)?'':':columns:'+slots.join('|'));}
+
 const rows=[];
 $('batch-mode').checked=localStorage.getItem('testjeff-battle-batch')==='true';
-let storageKey=storageBase+($('batch-mode').checked?':batch':'');
+let storageKey=statsKey();
 let pendingKnowledge=null,knowledgeSaved=false;
 function loadStats(){stats=null;try{
   const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
-  if(saved&&Number.isInteger(saved.runs)&&saved.runs>=0&&Number.isFinite(saved.agreement)&&saved.agreement>=0&&saved.agreement<=saved.runs*10&&models.every(m=>{
+  if(saved&&Number.isInteger(saved.runs)&&saved.runs>=0&&Number.isFinite(saved.agreement)&&saved.agreement>=0&&saved.agreement<=saved.runs*10&&allModels.every(m=>{
     const v=saved.models?.[m.id];return !v||v.count>0&&v.count<=saved.runs*10&&v.count%10===0&&['totalMs','yes','probabilitySum','wins'].every(k=>Number.isFinite(v[k])&&v[k]>=0)&&v.yes<=v.count&&v.probabilitySum<=v.count&&v.wins<=v.count;
   }))stats=saved;
 }catch{}}
 loadStats();
-$('batch-mode').onchange=()=>{localStorage.setItem('testjeff-battle-batch',String($('batch-mode').checked));storageKey=storageBase+($('batch-mode').checked?':batch':'');loadStats();resetResults();};
+$('batch-mode').onchange=()=>{localStorage.setItem('testjeff-battle-batch',String($('batch-mode').checked));storageKey=statsKey();loadStats();resetResults();};
 function error(text=''){$('error').textContent=text;}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(stats));}catch{error('累積値を保存できませんでした。画面を閉じるまでは保持します。');}}
-function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key','batch-mode'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
+function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key','batch-mode'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);renderSelectors();updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
 function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
+function renderSelectors(){
+ document.querySelectorAll('.battle-model').forEach((select,i)=>{
+  select.replaceChildren();for(const m of [{id:'',name:'未選択'},...allModels]){const option=element('option',m.name);option.value=m.id;
+   const capability=window.TestJeffConnection?.capabilities?.capabilities?.find(c=>c.local_id===m.id);
+   if(m.id&&!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&window.TestJeffConnection.capabilities&&(!capability?.available||!capability.devices.includes(window.TestJeffConnection.config.device))){option.disabled=true;option.textContent+='（計測不能）';}
+   select.append(option);
+  }select.value=slots[i];select.disabled=busy;
+ });
+}
+function setupSelectors(){
+ [...document.querySelectorAll('thead th')].slice(1,5).forEach((th,i)=>{const select=element('select');select.className='battle-model';select.setAttribute('aria-label',`比較モデル${i+1}`);th.replaceChildren(select);
+  select.onchange=()=>{if(busy)return;const old=slots[i],next=select.value,other=next?slots.findIndex((id,j)=>id===next&&j!==i):-1;if(other>=0)slots[other]=old;slots[i]=next;
+   models=slots.map(id=>allModels.find(m=>m.id===id)||{id:'',name:'未選択',inactive:true});localStorage.setItem('testjeff-battle-slots',JSON.stringify(slots));storageKey=statsKey();loadStats();resetResults();renderSelectors();
+  };
+ });renderSelectors();
+}
+window.addEventListener('fds-capabilities',renderSelectors);
 function resetResults(){run=null;clearReviews();render();}
 function createRows(values){
   rows.length=0;$('rows').replaceChildren();
@@ -34,6 +56,7 @@ function render(){
     for(const [label,value] of [[run?.batch?'平均換算/件':'平均応答',s?`${s.mean.toFixed(1)} ms`:'—'],['速度順位',finished&&s?`${ordered.findIndex(x=>x.mean===s.mean)+1}位`:'—'],[run?.batch?'10件全体':'中央値',s?`${(run?.batch?s.totalMs:s.median).toFixed(1)} ms`:'—'],['最速件数',comparison&&s&&comparison.agreement!==null?`${comparison.wins[m.id]} / 10`:'—']]){
       const part=element('div',label);part.append(element('strong',value));metrics.append(part);
     }
+    if(m.inactive){card.append(element('div','処理しません','sub'));$('summary').append(card);continue;}
     if(run?.skipped?.[m.id])card.append(element('div','計測不能：'+run.skipped[m.id],'sub'));
     card.append(metrics,element('div',`判定 ${items.length}/10件・肯定 ${s?.yes||0}件・平均確率 ${m.cloud?'対象外':s?(s.probabilitySum/s.count*100).toFixed(1)+'%':'—'}`, 'sub'));
     if(m.cloud)card.append(element('div','Codex CLI・クラウド通信／起動込み・確率なし','sub'));
@@ -49,7 +72,7 @@ function render(){
     const comparable=values.filter(Boolean);const full=finished&&comparable.length>=2,fastest=full?Math.min(...comparable.map(x=>x.ms)):null;
     row.difference=full&&!comparable.every(x=>BattleCore.positive(x)===BattleCore.positive(comparable[0]));
     row.tr.classList.toggle('mismatch',row.difference);
-    values.forEach((item,j)=>{const cell=row.cells[j];cell.replaceChildren();if(!item){cell.textContent=run?.skipped?.[models[j].id]?'計測不能':'未評価';cell.title=run?.skipped?.[models[j].id]||'';return;}
+    values.forEach((item,j)=>{const cell=row.cells[j];cell.replaceChildren();if(!item){cell.textContent=models[j].inactive?'未選択':run?.skipped?.[models[j].id]?'計測不能':'未評価';cell.title=run?.skipped?.[models[j].id]||'';return;}
       const isFastest=full&&item.ms===fastest;
       const box=element('div',undefined,isFastest?'answer-box fastest':'answer-box');
       if(isFastest)box.title='この候補で最速';
@@ -115,11 +138,12 @@ async function battle(){
   if(busy)return;error();let requests;
   const target=$('target').value.trim(),candidates=rows.map(r=>r.input.value.trim());
   try{requests=candidates.map(word=>NounCore.makeRequest(target,word));}catch(e){error(e.message);return;}
+  if(!models.some(m=>!m.inactive)){error('比較するモデルを選択してください。');return;}
   clearReviews();setBusy(true);stop=false;let original=null;
-  const local=models.filter(m=>!m.cloud),offset=(stats?.runs||0)%local.length,order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
-  run={batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
+  const local=models.filter(m=>!m.cloud&&!m.inactive),offset=(stats?.runs||0)%(local.length||1),order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
+  run={selected_models:models.filter(m=>!m.inactive).map(m=>m.id),columns:[...slots],batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
   try{
-    try{original=(await api('/testjeff/status')).selected;}catch(e){run.connection_error=e.message;}
+    try{if(local.length)original=(await api('/testjeff/status')).selected;}catch(e){run.connection_error=e.message;}
     for(const m of order){
       if(stop)break;
       try{
@@ -155,7 +179,7 @@ async function battle(){
   }catch(e){run.status='失敗';error(e.message);}
   finally{
     if(original){$('progress').textContent='元のモデルに戻しています';try{await api('/testjeff/model',{model:original});}catch(e){error(`元のモデルに戻せませんでした。${e.message}`);}}
-    $('progress').textContent=run.status==='完了'?(Object.keys(run.skipped).length?`${BattleCore.measured(run).length}モデル計測完了・${Object.keys(run.skipped).length}モデル計測不能`:'40 / 40件完了'):`${run.status}・累積には加算していません`;
+    $('progress').textContent=run.status==='完了'?(Object.keys(run.skipped).length?`${BattleCore.measured(run).length}モデル計測完了・${Object.keys(run.skipped).length}モデル計測不能`:`${run.selected_models.length*10} / ${run.selected_models.length*10}件完了`):`${run.status}・累積には加算していません`;
     setBusy(false);render();
   }
 }
@@ -169,5 +193,5 @@ $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(
   words=(await api('/testjeff/nouns')).flatMap(g=>g.words);targets=await api('/testjeff/abstract-nouns');
   for(const [id,values] of [['targets',targets],['nouns',words]])for(const word of values){const option=element('option');option.value=word;$(id).append(option);}
   const health=await api('/health');$('auth').classList.toggle('hidden',!health.authentication);
-  createRows(['犬','猫','馬','象','イルカ','りんご','椅子','自転車','鉛筆','雨']);setBusy(false);$('progress').textContent='同じ10件で対戦';
+  setupSelectors();createRows(['犬','猫','馬','象','イルカ','りんご','椅子','自転車','鉛筆','雨']);setBusy(false);$('progress').textContent='同じ10件で対戦';
 }catch(e){error(e.message);}})();

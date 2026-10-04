@@ -2,10 +2,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
  const page=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[],records=[];page.on('pageerror',e=>errors.push(e.message));
  page.on('response',async response=>{if((response.url().endsWith('/v1/systemone')||response.url().endsWith('/testjeff/photos'))&&response.ok())records.push(await response.json());});
- await page.goto('http://127.0.0.1:8765/photos');await page.locator('#backend').selectOption('fds');await page.locator('#fds-host').fill('127.0.0.1');await page.locator('#fds-port').fill('8767');
- await Promise.all([page.waitForNavigation(),page.locator('#connection-apply').click()]);
+ await page.goto('http://127.0.0.1:8765/photos');await page.locator('#backend').selectOption('fds');await page.waitForFunction(()=>document.getElementById('connection-status').textContent==='接続済み');
  for(const route of ['/photos','/classification','/nouns','/battle','/']){
-  await page.goto('http://127.0.0.1:8765'+route);assert.equal(await page.locator('#backend').inputValue(),'fds');
+  await page.goto('http://127.0.0.1:8765'+route);assert.equal(await page.locator('#backend').inputValue(),'fds');await page.waitForFunction(()=>document.getElementById('connection-status').textContent==='接続済み');
   if(route==='/photos'||route==='/classification'){
    await page.waitForFunction(()=>document.getElementById('prompt-text').value.length>0);
    await page.locator('#file').setInputFiles(path.join(__dirname,'../dev/image/sample1.jpg'));
@@ -20,9 +19,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  }
  assert(records.length>=13);assert(records.every(r=>r.execution?.backend==='fds'));
  // 無効な接続先は適用しない。
- await page.locator('#fds-port').fill('1');await page.locator('#fds-check').click();await page.waitForFunction(()=>!document.getElementById('fds-check').disabled);
+ await page.locator('#fds-port').fill('1');await page.waitForFunction(()=>document.getElementById('connection-status').textContent.startsWith('接続失敗'));
  assert.match(await page.locator('#connection-status').textContent(),/接続できない/);
- await page.locator('#backend').selectOption('local');await Promise.all([page.waitForNavigation(),page.locator('#connection-apply').click()]);assert.equal(await page.locator('#backend').inputValue(),'local');
+ await page.locator('#backend').selectOption('local');await page.waitForFunction(()=>document.getElementById('connection-status').textContent==='ローカル');assert.equal(await page.locator('#backend').inputValue(),'local');
  await page.locator('#run').click();await page.waitForFunction(()=>!document.getElementById('run').disabled);
  assert(!records.at(-1).execution?.backend);
  assert.deepEqual(errors,[]);fs.writeFileSync('dev/testing/output/fds-browser.json',JSON.stringify({records,errors},null,2));

@@ -13,3 +13,6 @@ assert(core.complete(partial));assert.equal(core.compare(partial).agreement,null
 const partialStats=core.accumulate(null,partial);assert.equal(partialStats.comparisons,0);assert.equal(partialStats.models['qwen-2b'],undefined);
 assert(!core.complete({results:{},skipped:Object.fromEntries(core.models.map(m=>[m.id,'未導入']))}));
 console.log('比較集計・中央値・一致数・最速件数・不完全回の除外を確認しました。');
+
+const chosen={selected_models:['qwen-0.8b'],results:partial.results};assert(core.complete(chosen));assert.equal(core.accumulate(null,chosen).models['qwen-0.8b'].count,10);
+assert(!core.complete({...chosen,selected_models:[]}));assert(!core.complete({...chosen,selected_models:['unknown']}));assert(!core.complete({...chosen,selected_models:['qwen-0.8b','qwen-0.8b']}));
