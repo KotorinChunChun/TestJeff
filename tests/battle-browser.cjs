@@ -2,16 +2,17 @@ const {chromium}=require('playwright');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const core=require('../src/battle-core.js');
-const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http://127.0.0.1:8767';
+const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||process.env.KNOWLEDGE_URL||'http://127.0.0.1:8767';
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
   const page=await browser.newPage({viewport:{width:1250,height:1000}}),errors=[],calls=[],lunaCalls=[],switches=[];
-  let selected='qwen-2b',mode='normal';
+  let selected='qwen-2b',mode='normal';const knowledge=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=>{if(r.url().endsWith('/v1/systemone'))calls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/luna'))lunaCalls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/model'))switches.push(r.postDataJSON().model);});
   if(!live)await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     const files={'/battle':'src/battle.html','/assets/battle.js':'src/battle.js','/assets/battle-core.js':'src/battle-core.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
     if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/battle'?'text/html':'application/json'});
+    if(url.pathname==='/testjeff/knowledge'){if(process.env.KNOWLEDGE_URL)return route.continue();if(req.method()==='GET')return route.fulfill({json:{latest:knowledge.slice(-1),history:knowledge}});const value=req.postDataJSON();knowledge.push(value);return route.fulfill({json:value});}
     if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
     if(url.pathname==='/testjeff/status')return route.fulfill({json:{selected,ready:true,reserved_gib:2}});
     if(url.pathname==='/testjeff/model'){selected=req.postDataJSON().model;return route.fulfill({json:{selected,ready:true,revision:'試験'}});}
@@ -40,10 +41,25 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||'http:
   const downloaded=page.waitForEvent('download');await page.locator('#export').click();
   const record=JSON.parse(fs.readFileSync(await (await downloaded).path(),'utf8'));
   assert.equal(record.run.status,'完了');assert(core.complete(record.run));
-  assert.equal(await page.locator('thead th').count(),5);
+  assert.equal(await page.locator('thead th').count(),6);
   assert.equal(await page.locator('.probability-track').count(),30);
   const displayed=await page.locator('#rows tr').evaluateAll(nodes=>nodes.map(tr=>[...tr.querySelectorAll('.answer-box')].map(box=>({fast:box.classList.contains('fastest'),width:box.querySelector('.probability-fill')?.style.width,green:box.querySelector('.probability')?.classList.contains('yes')}))));
   displayed.forEach((row,i)=>{const times=core.models.map(m=>record.run.results[m.id][i].ms);row.forEach((box,j)=>{const item=record.run.results[core.models[j].id][i];assert.equal(box.fast,item.ms===Math.min(...times));if(j<3){assert(Math.abs(parseFloat(box.width)-item.probability*100)<.001);assert.equal(box.green,item.probability>=.5);}else assert.equal(box.width,undefined);});});
+  if(!live){
+    await page.locator('#sort').selectOption('name');
+    const reviewed=page.locator('#rows tr').filter({has:page.locator('input[aria-label="候補1"]')});
+    await reviewed.locator('select').selectOption('です');await reviewed.locator('textarea').fill('日常の使い方で判断しました。');
+    await page.locator('#save-knowledge').click();await page.getByText('保存済み',{exact:true}).waitFor();
+    assert(await page.locator('#save-knowledge').isDisabled());
+    await reviewed.locator('select').selectOption('ではありません');
+    await page.locator('#save-knowledge').click();await page.getByText('保存済み',{exact:true}).waitFor();
+    const download=page.waitForEvent('download');await page.locator('#download-knowledge').click();
+    const saved=JSON.parse(fs.readFileSync(await (await download).path(),'utf8'));
+    assert.equal(saved.latest.at(-1).annotations[0].expected,'ではありません');
+    assert.equal(saved.latest.at(-1).run.candidates[0],candidates[0]);
+    assert.equal(saved.latest.at(-1).annotations[0].comment,'日常の使い方で判断しました。');
+    fs.writeFileSync(path.join(root,'dev/testing/output/knowledge-browser.json'),JSON.stringify(saved,null,2));
+  }
   await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.png`),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}-mobile.png`),fullPage:true});
   await page.reload();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));

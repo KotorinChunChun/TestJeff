@@ -16,6 +16,7 @@ from feedback import Feedback, FeedbackStore
 from resources import ResourceMeter
 from luna import LunaInput, classify
 from photos import PhotoInput, prepare_image, questions as photo_questions
+from knowledge import Evaluation, KnowledgeStore
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -113,6 +114,20 @@ def serve(name: str, port: int, device: str) -> None:
 
     server.app.router.lifespan_context = local_lifespan
     resource_meter = ResourceMeter()
+    knowledge_store = KnowledgeStore(Path(os.environ.get('TESTJEFF_KNOWLEDGE_PATH', str(ROOT / 'dev/feedback/knowledge.sqlite3'))))
+
+    @server.app.post('/testjeff/knowledge', dependencies=[Depends(server.authenticate)])
+    def save_knowledge(body: Evaluation):
+        try:
+            return knowledge_store.save_evaluation(body)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from error
+        except Exception as error:
+            raise HTTPException(500, '評価を保存できませんでした。再試行してください。') from error
+
+    @server.app.get('/testjeff/knowledge', dependencies=[Depends(server.authenticate)])
+    def download_knowledge():
+        return JSONResponse(knowledge_store.export(), headers={'Content-Disposition':'attachment; filename="quality-knowledge.json"'})
 
     @server.app.post('/testjeff/photos', dependencies=[Depends(server.authenticate)])
     def photos(body: PhotoInput):
@@ -189,6 +204,13 @@ def serve(name: str, port: int, device: str) -> None:
                 body.extend(chunk)
                 if len(body) > 11_100_000:
                     return JSONResponse({'detail': '画像は8MB以内にしてください。'}, status_code=413)
+            request._body = bytes(body)
+        if request.url.path == '/testjeff/knowledge' and request.method == 'POST':
+            body = bytearray()
+            async for chunk in request.stream():
+                body.extend(chunk)
+                if len(body) > 262144:
+                    return JSONResponse({'detail':'評価データが大きすぎます。'}, status_code=413)
             request._body = bytes(body)
         if request.url.path == '/v1/systemone' and request.method == 'POST':
             body = bytearray()

@@ -2,6 +2,7 @@
 const $=id=>document.getElementById(id), models=BattleCore.models, storageKey='testjeff-battle-v2';
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
 const rows=[];
+let pendingKnowledge=null,knowledgeSaved=false;
 try{
   const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
   if(saved&&Number.isInteger(saved.runs)&&saved.runs>=0&&Number.isFinite(saved.agreement)&&saved.agreement>=0&&saved.agreement<=saved.runs*10&&models.every(m=>{
@@ -10,12 +11,12 @@ try{
 }catch{}
 function error(text=''){$('error').textContent=text;}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(stats));}catch{error('累積値を保存できませんでした。画面を閉じるまでは保持します。');}}
-function setBusy(value){busy=value;for(const id of ['target','random','start','reset','key'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
+function setBusy(value){busy=value;for(const id of ['target','random','start','reset','key'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
 function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
-function resetResults(){run=null;render();}
+function resetResults(){run=null;clearReviews();render();}
 function createRows(values){
   rows.length=0;$('rows').replaceChildren();
-  values.forEach((word,i)=>{const tr=element('tr'),td=element('td'),input=element('input');input.value=word;input.maxLength=80;input.setAttribute('list','nouns');input.setAttribute('aria-label',`候補${i+1}`);input.oninput=resetResults;td.append(input);tr.append(td);const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});rows.push({tr,input,cells,index:i});$('rows').append(tr);});resetResults();
+  values.forEach((word,i)=>{const tr=element('tr'),td=element('td'),input=element('input');input.value=word;input.maxLength=80;input.setAttribute('list','nouns');input.setAttribute('aria-label',`候補${i+1}`);input.oninput=resetResults;td.append(input);tr.append(td);const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});const review=element('td',undefined,'review'),expected=element('select'),comment=element('textarea');expected.setAttribute('aria-label',`ユーザー判定${i+1}`);for(const value of ['未評価','です','ではありません','判断困難']){const option=element('option',value);option.value=value;expected.append(option);}comment.maxLength=1000;comment.placeholder='理由・補足';comment.setAttribute('aria-label',`評価コメント${i+1}`);expected.onchange=reviewChanged;comment.oninput=reviewChanged;review.append(expected,comment);tr.append(review);rows.push({tr,input,cells,expected,comment,index:i});$('rows').append(tr);});resetResults();
 }
 function render(){
   const finished=run&&BattleCore.complete(run),comparison=finished?BattleCore.compare(run):null;
@@ -61,9 +62,33 @@ function render(){
     });
   }
   sortRows();
+  renderQuality();updateReviewControls();
 }
 function sortRows(){const mode=$('sort').value;[...rows].sort((a,b)=>(mode==='name'?a.input.value.localeCompare(b.input.value,'ja'):mode==='difference'?Number(b.difference)-Number(a.difference):0)||a.index-b.index).forEach(r=>$('rows').append(r.tr));}
 $('sort').onchange=sortRows;
+function reviewable(){return !!run&&run.status==='完了'&&BattleCore.complete(run);}
+function annotations(){return rows.map(row=>({expected:row.expected.value,comment:row.comment.value.trim()}));}
+function updateReviewControls(){const disabled=busy||!reviewable();rows.forEach(r=>{r.expected.disabled=disabled;r.comment.disabled=disabled;});$('save-knowledge').disabled=disabled||knowledgeSaved||!annotations().some(a=>a.expected!=='未評価'||a.comment);}
+function clearReviews(){pendingKnowledge=null;knowledgeSaved=false;rows.forEach(r=>{r.expected.value='未評価';r.comment.value='';});$('knowledge-status').textContent='';}
+function reviewChanged(){pendingKnowledge=null;knowledgeSaved=false;$('knowledge-status').textContent='未保存';renderQuality();updateReviewControls();}
+function renderQuality(){
+  document.querySelectorAll('.quality-score').forEach(node=>node.remove());
+  if(!reviewable())return;
+  const notes=annotations();models.forEach((m,j)=>{let correct=0,total=0;notes.forEach((a,i)=>{if(a.expected==='です'||a.expected==='ではありません'){total++;if(BattleCore.positive(run.results[m.id][i])===(a.expected==='です'))correct++;}});$('summary').children[j].append(element('div',`ユーザー判定と一致 ${correct} / ${total}件${total?'（'+(correct/total*100).toFixed(1)+'%）':''}`,'sub quality-score'));});
+}
+$('save-knowledge').onclick=async()=>{
+  if(busy||!reviewable())return;
+  if(!pendingKnowledge)pendingKnowledge={event_id:crypto.randomUUID(),run:JSON.parse(JSON.stringify(run)),annotations:annotations()};
+  const payload=pendingKnowledge;setBusy(true);$('stop').classList.add('hidden');$('knowledge-status').textContent='保存中';
+  try{const saved=await api('/testjeff/knowledge',payload);if(saved.event_id!==payload.event_id)throw Error('保存内容を確認できませんでした。');knowledgeSaved=true;pendingKnowledge=null;$('knowledge-status').textContent='保存済み';}
+  catch(e){$('knowledge-status').textContent=`保存失敗：${e.message}`;}
+  finally{setBusy(false);}
+};
+$('download-knowledge').onclick=async()=>{
+  const button=$('download-knowledge');button.disabled=true;
+  try{const data=await api('/testjeff/knowledge');const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));const a=element('a');a.href=url;a.download='品質評価ナレッジ.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e){error(e.message);}finally{button.disabled=false;}
+};
+
 async function api(path,body){
   const headers={};if($('key').value)headers.Authorization=`Bearer ${$('key').value}`;if(body)headers['Content-Type']='application/json';
   const response=await fetch(path,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined});
@@ -85,7 +110,7 @@ async function battle(){
   if(busy)return;error();let requests;
   const target=$('target').value.trim(),candidates=rows.map(r=>r.input.value.trim());
   try{requests=candidates.map(word=>NounCore.makeRequest(target,word));}catch(e){error(e.message);return;}
-  setBusy(true);stop=false;let original=null;
+  clearReviews();setBusy(true);stop=false;let original=null;
   const local=models.filter(m=>!m.cloud),offset=(stats?.runs||0)%local.length,order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
   run={id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
   try{
