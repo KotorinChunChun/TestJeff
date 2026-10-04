@@ -3,10 +3,11 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const root=path.join(__dirname,'..'),ids={'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b','gemma-e2b':'jeff-gemma-4-e2b-it'},delay=ms=>new Promise(r=>setTimeout(r,ms));
 async function download(page){const pending=page.waitForEvent('download');await page.locator('#download').click();return JSON.parse(fs.readFileSync(await(await pending).path(),'utf8'));}
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
- const page=await browser.newPage({viewport:{width:1500,height:1100}}),errors=[],requests=[],saved=[],saveAttempts=[];let selected='qwen-0.8b',inferences=0,runCount=1,methodOrder=['single','batch'],warmDelay=10,loadDelay=5,itemDelay=2,batchDelay=5,failSave=false,failItem=0,holdWarmup=false,held=null,release=null;
+ const page=await browser.newPage({viewport:{width:1500,height:1100}}),errors=[],requests=[],saved=[],saveAttempts=[],mutations=[];let selected='qwen-0.8b',inferences=0,runCount=1,methodOrder=['single','batch'],warmDelay=10,loadDelay=5,itemDelay=2,batchDelay=5,failSave=false,failItem=0,holdWarmup=false,held=null,release=null;
  await page.addInitScript(()=>{window.TestJeffConnection={config:{mode:'local',local_device:'cpu'},key:'local:cpu'};localStorage.setItem('testjeff-query-comparison-inputs-v1',JSON.stringify({target:'動物',count:1,candidates:['犬'],slots:['qwen-0.8b','','','']}));});
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{const request=route.request(),url=new URL(request.url()),files={'/query-comparison':'src/query-comparison.html','/assets/query-comparison.js':'src/query-comparison.js','/assets/query-comparison-core.js':'src/query-comparison-core.js','/assets/noun-combo.js':'src/noun-combo.js','/assets/nouns-core.js':'src/nouns-core.js','/assets/battle-core.js':'src/battle-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
+  if(request.method()==='POST')mutations.push(url.pathname);
   if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname==='/query-comparison'?'text/html':url.pathname.endsWith('.js')?'text/javascript':'application/json'});
   if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
   if(url.pathname==='/testjeff/status')return route.fulfill({json:{ready:true,selected}});
@@ -34,11 +35,18 @@ async function download(page){const pending=page.waitForEvent('download');await 
  for(const count of [1,10,30,100]){
   runCount=count;methodOrder=(saved.length/2)%2?['batch','single']:['single','batch'];await page.locator('#candidate-count').selectOption(String(count));assert.equal(await page.locator('#candidate-editors input').count(),count);const before=requests.length;
   if(count===1){warmDelay=600;loadDelay=250;itemDelay=30;batchDelay=20;failSave=true;}else{warmDelay=5;loadDelay=3;itemDelay=1;batchDelay=3;}
+  if(count===1){
+   await page.locator('#target').fill('試験専用分類');await page.locator('input[aria-label="候補1"]').fill('試験専用候補');const beforeRandom=mutations.length;
+   await page.locator('#random').click();await page.waitForLoadState('networkidle');
+   assert.equal(mutations.length,beforeRandom,'ランダム変更だけでは読込・推論・保存を送信しない');assert(!(await page.locator('#comparison-wait').isVisible()));assert(await page.locator('#start').isEnabled());
+   assert.notEqual(await page.locator('#target').inputValue(),'試験専用分類');assert.notEqual(await page.locator('input[aria-label="候補1"]').inputValue(),'試験専用候補');
+   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('testjeff-query-comparison-inputs-v1')).input_method),'random');
+  }
   await page.locator('#start').click();assert(await page.locator('#comparison-wait').isVisible());
   if(count===1){await page.waitForFunction(()=>parseInt(document.getElementById('elapsed').textContent)>=1);}
   await page.waitForFunction(()=>document.getElementById('progress').textContent==='両方式の計測終了'&&!document.getElementById('start').disabled);
   if(count===1){assert.match(await page.locator('#save-status').textContent(),/保存失敗/);const attempts=saveAttempts.length;await page.locator('#retry-save').click();await page.waitForFunction(()=>document.getElementById('save-status').textContent==='両方式の結果を保存済み');assert.equal(saveAttempts.length,attempts+1,'失敗した一括レコードだけを再送');}
-  const value=await download(page);assert.deepEqual(value.method_order,methodOrder);assert.equal(value.records.single.run.candidates.length,count);assert.deepEqual(value.records.single.run.candidates,value.records.batch.run.candidates);assert.equal(value.records.single.run.parameters.comparison_id,value.comparison_id);assert.equal(value.records.batch.run.parameters.comparison_id,value.comparison_id);
+  const value=await download(page);assert.deepEqual(value.method_order,methodOrder);assert.equal(value.records.single.run.candidates.length,count);assert.deepEqual(value.records.single.run.candidates,value.records.batch.run.candidates);assert.equal(value.records.single.run.parameters.comparison_id,value.comparison_id);assert.equal(value.records.batch.run.parameters.comparison_id,value.comparison_id);assert.equal(value.records.single.run.parameters.input_method,count===1?'random':'manual');assert.equal(value.records.batch.run.parameters.input_method,count===1?'random':'manual');
   const sent=requests.slice(before),single=sent.filter(x=>x.kind==='single'),batch=sent.filter(x=>x.kind==='batch');assert.equal(single.length,count);assert.equal(batch.length,1);assert.equal(sent.filter(x=>x.kind==='warmup').length,2);assert.deepEqual(single.map(x=>x.body.state.対象),batch[0].body.candidates);assert.equal(batch[0].body.target,value.records.single.run.target);
   for(const mode of ['single','batch']){const run=value.records[mode].run,total=run.query_totals['qwen-0.8b'];assert.equal(total.count,count);assert.equal(total.complete,true);assert.equal(run.parameters.candidate_count,count);assert.equal(run.results['qwen-0.8b'].length,count);assert(run.warmup['qwen-0.8b'].reproduction);assert.equal(run.execution['qwen-0.8b'].device,'cpu');assert(total.total_ms+2>=total.response_sum_ms);if(count===1)assert(total.total_ms<200,'ロード・予備判定の待ちを合計から除外');}
   assert(value.records.batch.run.parameters.batch_execution['qwen-0.8b']);assert.equal(value.metrics['qwen-0.8b'].comparable,true);assert(!(await page.locator('#comparison-wait').isVisible()));
@@ -51,6 +59,8 @@ async function download(page){const pending=page.waitForEvent('download');await 
   assert(value.records.batch.run.results['qwen-0.8b'][0].ms>=0,'表示を除いても計測JSONは保持');
   await page.locator('#close-detail').click();
  }
+ // ランダム変更でも直前の比較結果・未保存情報は上書きしない。
+ const priorRandom=await download(page),beforeRandomPosts=mutations.length;await page.locator('#random').click();await page.waitForLoadState('networkidle');assert.equal(mutations.length,beforeRandomPosts);assert.deepEqual(await download(page),priorRandom);
  // 編集中のA/Bを履歴表示で上書きせず、2方式の保存結果を復元する。
  const prior=await download(page);await page.locator('#target').fill('持ち歩く物');await page.locator('input[aria-label="候補1"]').fill('買い物袋');await page.locator('#refresh-history').click();await page.waitForFunction(()=>document.getElementById('history-select').options.length>1);await page.locator('#history-select').selectOption(prior.comparison_id);await page.waitForFunction(()=>document.getElementById('history-status').textContent==='保存結果を表示中');assert.equal(await page.locator('#target').inputValue(),'持ち歩く物');assert.equal(await page.locator('input[aria-label="候補1"]').inputValue(),'買い物袋');const restored=await download(page);assert.deepEqual(restored.records,prior.records);
  // 予備判定の待機中に中止したら本問い合わせを1件も送らない。

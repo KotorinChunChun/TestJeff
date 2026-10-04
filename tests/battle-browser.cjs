@@ -5,7 +5,7 @@ const core=require('../src/battle-core.js');
 const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||process.env.KNOWLEDGE_URL||'http://127.0.0.1:8767';
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
   const page=await browser.newPage({viewport:{width:1250,height:1000}}),errors=[],calls=[],lunaCalls=[],switches=[];
-  let selected='qwen-2b',mode='normal';const knowledge=[];
+  let selected='qwen-2b',mode='normal';const knowledge=[],records=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=>{if(r.url().endsWith('/v1/systemone'))calls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/luna'))lunaCalls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/model'))switches.push(r.postDataJSON().model);});
   if(!live)await page.route('**/*',async route=>{
@@ -14,7 +14,7 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
     if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/battle'?'text/html':'application/json'});
     if(url.pathname==='/testjeff/knowledge'){if(process.env.KNOWLEDGE_URL)return route.continue();if(req.method()==='GET')return route.fulfill({json:{latest:knowledge.slice(-1),history:knowledge}});const value=req.postDataJSON();knowledge.push(value);return route.fulfill({json:value});}
     if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
-    if(url.pathname==='/testjeff/battle-runs')return route.fulfill({json:{id:1,run_id:req.postDataJSON().run.id}});
+    if(url.pathname==='/testjeff/battle-runs'){const record=req.postDataJSON();records.push(record);return route.fulfill({json:{id:records.length,run_id:record.run.id}});}
     if(url.pathname==='/testjeff/status')return route.fulfill({json:{selected,ready:true,reserved_gib:2}});
     if(url.pathname==='/testjeff/model'){selected=req.postDataJSON().model;return route.fulfill({json:{selected,ready:true,revision:'試験'}});}
     if(url.pathname==='/testjeff/luna'&&mode==='luna-error')return route.fulfill({status:503,json:{detail:'Luna試験エラー'}});
@@ -85,8 +85,24 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
     await page.locator('#target').fill('道具');mode='slow';await page.locator('#start').click();await page.locator('#stop').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('中止'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
     mode='error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('3モデル計測不能'));assert((await page.locator('#cumulative').textContent()).includes('累積 2回'));
     mode='luna-error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('1モデル計測不能'));assert.equal(await page.locator('.result').count(),30);assert((await page.locator('#cumulative').textContent()).includes('累積 3回'));
-    mode='normal';const offset=switches.length;await page.locator('#random').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了');assert.equal(switches[offset],'qwen-0.8b');assert((await page.locator('#cumulative').textContent()).includes('累積 4回'));
+    mode='normal';await page.locator('[aria-label="ユーザー判定1"]').selectOption('です');await page.locator('[aria-label="評価コメント1"]').fill('変更前の評価');
+    const beforeRandom={calls:calls.length,luna:lunaCalls.length,switches:switches.length,records:records.length,knowledge:knowledge.length};
+    const oldInputs=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));
+    await page.evaluate(()=>{globalThis.originalRandom=Math.random;Math.random=()=>0;});
+    await page.locator('#random').click();await page.evaluate(()=>{Math.random=globalThis.originalRandom;delete globalThis.originalRandom;});
+    assert.deepEqual({calls:calls.length,luna:lunaCalls.length,switches:switches.length,records:records.length,knowledge:knowledge.length},beforeRandom);
+    assert.equal(await page.locator('#target').inputValue(),JSON.parse(fs.readFileSync(path.join(root,'src/data/abstract-nouns.json'),'utf8'))[0]);
+    const randomInputs=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));assert.notDeepEqual(randomInputs,oldInputs);assert.equal(new Set(randomInputs).size,10);
+    assert.equal(await page.locator('.result,.quality-score,.rank-medal,.battle-model.batch-fastest').count(),0);assert(await page.locator('#battle-wait').evaluate(node=>node.classList.contains('hidden')));
+    assert.deepEqual(await page.locator('#rows .review select').evaluateAll(ns=>ns.map(n=>n.value)),Array(10).fill('未評価'));assert((await page.locator('#rows textarea').evaluateAll(ns=>ns.map(n=>n.value))).every(value=>value===''));
+    assert(await page.locator('#export').isDisabled());assert(await page.locator('#save-run').isDisabled());assert(await page.locator('#save-knowledge').isDisabled());assert.equal(await page.locator('#progress').textContent(),'同じ10件で対戦');assert((await page.locator('#cumulative').textContent()).includes('累積 3回'));
+    const prepared=await page.evaluate(()=>JSON.parse(localStorage.getItem('testjeff-battle-inputs-v1')));assert.equal(prepared.input_method,'random');assert.deepEqual(prepared.candidates,randomInputs);
+    await page.reload();await page.locator('#start:not([disabled])').waitFor();assert.deepEqual(await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value)),randomInputs);
+    assert.deepEqual({calls:calls.length,luna:lunaCalls.length,switches:switches.length,records:records.length,knowledge:knowledge.length},beforeRandom);
+    await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);
+    assert.equal(switches[beforeRandom.switches],'qwen-0.8b');assert((await page.locator('#cumulative').textContent()).includes('累積 4回'));assert.equal(records.length,beforeRandom.records+1);assert.equal(records.at(-1).run.parameters.input_method,'random');assert.deepEqual(records.at(-1).run.candidates,randomInputs);
+    await page.locator('#target').fill('手入力の名詞');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('testjeff-battle-inputs-v1')).input_method),'manual');
   }
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.json`),JSON.stringify({record,errors},null,2));
-  console.log('4モデル同一入力・44送信・予備判定除外・集計保存・復元・JSON出力を確認しました。');
+  console.log('4モデル同一入力・44送信・予備判定除外・集計保存・復元・JSON出力・ランダム候補変更だけでは送信せず開始操作で判定することを確認しました。');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -4,7 +4,7 @@ let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
 let targetCombo=null,completedRecord=null,recordSaved=false,recordSaving=false;
 const clone=value=>JSON.parse(JSON.stringify(value));
 const inputsKey='testjeff-battle-inputs-v1';
-const candidateCounts=[1,10,30,100];let candidateCount=10,savedInputs=null;
+const candidateCounts=[1,10,30,100];let candidateCount=10,savedInputs=null,preparedInputMethod='manual';
 try{const saved=JSON.parse(localStorage.getItem(inputsKey)),count=saved?.count??10;if(saved&&candidateCounts.includes(count)&&typeof saved.target==='string'&&saved.target.length<=80&&Array.isArray(saved.candidates)&&saved.candidates.length===count&&saved.candidates.every(value=>typeof value==='string'&&value.length<=80)){savedInputs=saved;candidateCount=count;}}catch{}
 $('candidate-count').value=String(candidateCount);
 let battleTimer=null;
@@ -59,15 +59,16 @@ function setupSelectors(){
 }
 window.addEventListener('fds-capabilities',renderSelectors);
 function resetResults(){run=null;completedRecord=null;recordSaved=false;$('run-save-status').textContent='';clearReviews();render();}
-function persistInputs(){try{localStorage.setItem(inputsKey,JSON.stringify({target:$('target').value,count:candidateCount,candidates:rows.map(r=>r.input.value)}));}catch{}}
-function inputChanged(){persistInputs();resetResults();}
+function persistInputs(){try{localStorage.setItem(inputsKey,JSON.stringify({target:$('target').value,count:candidateCount,candidates:rows.map(r=>r.input.value),input_method:preparedInputMethod}));}catch{}}
+function inputChanged(){preparedInputMethod='manual';persistInputs();resetResults();}
 function resizeCandidates(count){
   const values=rows.slice(0,count).map(row=>row.input.value),used=new Set(values.map(value=>value.trim()));
   if(values.length<count)values.push(...NounCore.draw(words.filter(word=>!used.has(word)),[$('target').value],count-values.length).candidates);
   candidateCount=count;storageKey=statsKey();loadStats();createRows(values);$('progress').textContent=`同じ${count}件で対戦`;
 }
 $('candidate-count').onchange=()=>{const count=Number($('candidate-count').value);if(!busy&&candidateCounts.includes(count))resizeCandidates(count);};
-function createRows(values){
+function createRows(values,inputMethod='manual'){
+  preparedInputMethod=inputMethod==='random'?'random':'manual';
   rows.forEach(row=>row.combo.destroy());
   rows.length=0;$('rows').replaceChildren();
   values.forEach((word,i)=>{
@@ -332,8 +333,8 @@ async function battle(inputMethod='manual'){
     hideBattleWait();$('stop').classList.add('hidden');render();await saveRun(completedRecord);setBusy(false);render();
   }
 }
-$('start').onclick=()=>battle('manual');
-$('random').onclick=()=>{if(busy)return;const chosen=NounCore.draw(words,targets,candidateCount);$('target').value=chosen.target;createRows(chosen.candidates);battle('random');};
+$('start').onclick=()=>battle(preparedInputMethod);
+$('random').onclick=()=>{if(busy)return;const chosen=NounCore.draw(words,targets,candidateCount);$('target').value=chosen.target;createRows(chosen.candidates,'random');error();$('progress').textContent=`同じ${candidateCount}件で対戦`;};
 $('target').oninput=inputChanged;
 $('stop').onclick=()=>{stop=true;$('stop').disabled=true;$('progress').textContent='処理中の1件が終了したら中止します';};
 $('reset').onclick=()=>{stats=null;save();render();};
@@ -344,5 +345,5 @@ $('export').onclick=()=>{if(completedRecord)downloadRecord(completedRecord,'モ�
   const health=await api('/health');$('auth').classList.toggle('hidden',!health.authentication);
   let candidates=['犬','猫','馬','象','イルカ','りんご','椅子','自転車','鉛筆','雨'];
   if(savedInputs){$('target').value=savedInputs.target;candidates=savedInputs.candidates;}
-  setupSelectors();createRows(candidates);setBusy(false);$('progress').textContent=`同じ${candidateCount}件で対戦`;
+  setupSelectors();createRows(candidates,savedInputs?.input_method);setBusy(false);$('progress').textContent=`同じ${candidateCount}件で対戦`;
 }catch(e){error(e.message);}})();
