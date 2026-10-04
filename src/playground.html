@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Jeff</title>
+    <title>Jev互換サンプル実験</title>
     <style>
       :root {
         color-scheme: light;
@@ -40,14 +40,6 @@
         justify-content: space-between;
         border-bottom: 1px solid var(--line);
       }
-      .page-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 16px;
-        margin-bottom: 20px;
-      }
-      .page-nav a { color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; text-decoration: none; }
-      .page-nav a:hover { background: #f0f6f1; border-color: var(--accent); }
       .brand {
         font-family: var(--mono);
         font-size: 22px;
@@ -406,18 +398,11 @@
   </head>
   <body>
     <header>
-      <div class="brand">Jeff</div>
+      <div class="brand">Jev互換サンプル実験</div>
       <nav aria-label="ページ移動"><a href="/">トップページ</a></nav>
       <div id="status" class="status" role="status">接続中</div>
     </header>
     <main>
-      <nav class="page-nav" aria-label="検証ページ">
-        <a href="/query-comparison">問い合わせ速度比較</a>
-        <a href="/battle">モデル対戦</a>
-        <a href="/nouns">名詞判定</a>
-        <a href="/photos">文字風景判定</a>
-        <a href="/classification">画像分類</a>
-      </nav>
       <div class="layout">
         <section class="panel" aria-label="入力">
           <div class="panel-head">

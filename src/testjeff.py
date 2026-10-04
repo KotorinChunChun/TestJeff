@@ -374,6 +374,8 @@ def serve(name: str, port: int, device: str) -> None:
     @server.app.middleware('http')
     async def bound_request(request: Request, call_next):
         if request.method == 'GET' and request.url.path == '/':
+            return HTMLResponse((ROOT / 'src/index.html').read_text(encoding='utf-8'))
+        if request.method == 'GET' and request.url.path in ('/samples', '/samples/'):
             return page_html((ROOT / 'src/playground.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/examples':
             return JSONResponse(json.loads((ROOT / 'tests/requests.json').read_text(encoding='utf-8')))

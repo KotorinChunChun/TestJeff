@@ -1,6 +1,6 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const base=process.env.TESTJEFF_URL||'http://127.0.0.1:8765';
-const destinations=['/','/query-comparison','/battle','/nouns','/photos','/classification'];
+const destinations=['/samples','/query-comparison','/battle','/nouns','/photos','/classification'];
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
  for(const mode of ['local','fds']){
   const context=await browser.newContext({viewport:{width:1400,height:1000}});
@@ -14,12 +14,15 @@ const destinations=['/','/query-comparison','/battle','/nouns','/photos','/class
   await page.route('**/testjeff/resources',r=>r.fulfill({json:{device:'cpu'}}));
   // 開発中の新しい部品も、本サーバーのPython再起動前から配置試験できる。
   await page.route('**/assets/noun-combo.js',r=>r.fulfill({body:fs.readFileSync('src/noun-combo.js','utf8'),contentType:'text/javascript'}));
-  for(const path of ['/','/nouns','/battle','/query-comparison','/photos','/classification']){
+  await page.goto(base+'/');
+  assert.deepEqual(await page.locator('main>.page-nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),destinations,'トップに全6ページの入口');
+  assert.equal(await page.locator('form,script,select').count(),0,'トップはメニュー専用');
+  for(const path of destinations){
    await page.goto(base+path);
    await page.waitForFunction(()=>!document.getElementById('backend').disabled);
    assert.deepEqual(await page.locator('header nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),['/'],`${mode} ${path} 右上はトップのみ`);
-   assert.equal(await page.locator('header nav>a[aria-current="page"]').count(),path==='/'?1:0);
-   if(path==='/')assert.deepEqual(await page.locator('main>.page-nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),destinations.slice(1),'トップ本文に全検証ページの入口');
+   assert.equal(await page.locator('header nav>a[aria-current="page"]').count(),0);
+   if(path==='/samples')assert.equal(await page.locator('#fds-default-model').count(),1,'サンプルのFDSモデル選択を保持');
    if(path==='/nouns')assert.equal(await page.locator('header nav>#download-feedback').count(),1,'ページ固有の記録ダウンロードも保持');
    for(const width of [1400,1078,390]){
     await page.setViewportSize({width,height:1000});
@@ -35,14 +38,14 @@ const destinations=['/','/query-comparison','/battle','/nouns','/photos','/class
      return {title:rect(title),form:rect(form),nav:nav&&rect(nav),navigation:nav?[...nav.children].map(rect):[],firstLink:nav?.querySelector('a')?.getAttribute('href'),labels,parent:row.parentElement.tagName,children:[...row.children].map(node=>node.tagName),blocks:[...row.children].map(rect),overflow:document.documentElement.scrollWidth>innerWidth+1,scrollable:row.scrollWidth>row.clientWidth+1,overflowX:getComputedStyle(row).overflowX};
     });
     const detail=JSON.stringify({mode,path,width,layout});
-    assert.equal(layout.parent,'HEADER',detail);assert(layout.nav,detail);assert.deepEqual(layout.children.slice(1,3),['FORM','NAV'],detail);if(path!=='/')assert.equal(layout.firstLink,'/',detail);
+    assert.equal(layout.parent,'HEADER',detail);assert(layout.nav,detail);assert.deepEqual(layout.children.slice(1,3),['FORM','NAV'],detail);assert.equal(layout.firstLink,'/',detail);
     assert(layout.title.right<=layout.form.left+1,detail);assert(layout.form.right<=layout.navigation[0].left+1,detail);
     for(const box of [...layout.blocks,...layout.navigation,...layout.labels.map(label=>label.box)])assert(Math.abs(box.center-layout.title.center)<2,detail);
     for(const label of layout.labels){assert.equal(label.nowrap,'nowrap',detail);assert.equal(label.textLines,1,detail);assert(Math.abs(label.box.center-label.control.center)<2,detail);}
     for(const boxes of [layout.blocks,layout.navigation,layout.labels.map(label=>label.box)])for(let i=1;i<boxes.length;i++)assert(boxes[i-1].right<=boxes[i].left+1,detail);
     assert(!layout.overflow,detail);
     if(width===390){assert(layout.scrollable,detail);assert(['auto','scroll'].includes(layout.overflowX),detail);}
-    const name=path==='/'?'home':path.slice(1),prefix=`dev/testing/output/header-nav-${name}-${mode}-${width}`;
+    const name=path.slice(1),prefix=`dev/testing/output/header-nav-${name}-${mode}-${width}`;
     await page.locator('.testjeff-page-header').screenshot({path:prefix+'.png'});
     if(layout.scrollable){
      const reached=await row.evaluate(row=>{
@@ -57,13 +60,13 @@ const destinations=['/','/query-comparison','/battle','/nouns','/photos','/class
      await row.evaluate(row=>row.scrollLeft=0);
     }
    }
-   if(path!=='/'){await page.locator('header nav>a[href="/"]').click();await page.waitForURL(base+'/');}
-   const destination=path==='/'?'/query-comparison':path;
+   await page.locator('header nav>a[href="/"]').click();await page.waitForURL(base+'/');
+   const destination=path;
    await page.locator(`main>.page-nav>a[href="${destination}"]`).click();
    await page.waitForURL(base+destination);await page.waitForFunction(()=>!document.getElementById('backend').disabled);
    assert.deepEqual(await page.locator('header nav>a').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('href'))),['/'],'トップ本文から移動後も右上はトップのみ');
   }
   assert.deepEqual(errors,[]);await context.close();
  }
- console.log('全6ページのトップリンク・トップ本文から各検証ページへの遷移・設定とnavの1行配置を確認。local/FDS×1400/1078/390px、改行と重複なし・ヘッダー内スクロール・ページ横はみ出しなし');
+ console.log('メニュー専用トップ・全6検証ページのトップリンクと往復・設定とnavの1行配置を確認。local/FDS×1400/1078/390px、改行と重複なし・ヘッダー内スクロール・ページ横はみ出しなし');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

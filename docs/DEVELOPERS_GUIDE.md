@@ -12,7 +12,7 @@ WindowsではCUDA 13.0版torch/torchvisionを使う。CUDAインデックスか�
 GPU試験ではHTTPクライアントとモデルサーバーを別プロセスにする。Windowsのvenvは子Pythonを生成するため、検証終了は自分が起動したPIDのツリーを終了し、ポート解放を待ってから次のモデルを読み込む。
 Jevの実サービスへの接続・完全互換性の比較試験は行っていない。検証対象はJeffが提供するJev形式の `/v1/systemone` と公式スキーマである。
 
-日本語画面はsrc/playground.html。公式MIT版を元に本件用として管理し、上流submoduleは変更しない。`GET /testjeff/examples` でtests/requests.jsonを読み、すべてのプリセットを生成する。`node tests/playground.test.cjs` は画面スクリプトをDOM代替上で実行し、全サンプルの選択・送信内容・ordersの一致を確認する（実ブラウザーの描画試験とは区別する）。
+トップ `/` はsrc/index.htmlによるメニュー専用画面で、接続スクリプトを注入しない。日本語サンプル画面は `/samples`（`/samples/` も可）のsrc/playground.html。公式MIT版を元に本件用として管理し、上流submoduleは変更しない。`GET /testjeff/examples` でtests/requests.jsonを読み、すべてのプリセットを生成する。`node tests/playground.test.cjs` は画面スクリプトをDOM代替上で実行し、全サンプルの選択・送信内容・ordersの一致を確認する（実ブラウザーの描画試験とは区別する）。
 
 名詞判定はsrc/nouns.html、nouns.js、nouns-core.js。GET /nounsとGET /testjeff/nounsを追加し、既存の/v1/systemoneへ候補ごとにnoulを送信する。辞書はsrc/data/nouns-source.txtとnouns.jsonの一致をテストで保つ。名詞を追加・変更するときは両方を更新する。
 

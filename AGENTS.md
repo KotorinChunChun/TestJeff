@@ -35,7 +35,7 @@
 | FDS対戦・速度比較の順次切替 | tests/fds-sequential.test.cjs、dev/history/v0.20.1/v0.20.1-imp.md |
 | 問い合わせ速度比較の自動保存 | src/query-autosave.js、tests/query-autosave.test.cjs、dev/testing/query_autosave_server.py、dev/history/v0.20.2/v0.20.2-imp.md |
 | 個別・一括の入力統一とCPU実測 | src/noun_requests.py、tests/noun_requests_test.py、dev/testing/noun_transport_benchmark.py、dev/history/v0.20.3/v0.20.3-imp.md |
-| 共通ヘッダー・トップからの移動 | src/connection.js、src/playground.html、tests/header-layout-browser.cjs、dev/history/v0.20.4/v0.20.4-imp.md |
+| 共通ヘッダー・メニュー専用トップ・サンプル実験 | src/connection.js、src/index.html、src/playground.html、tests/header-layout-browser.cjs、dev/history/v0.20.5/v0.20.5-imp.md |
 | ローカルCPU/GPU・対戦入力保持 | src/connection.js、tests/local_device_test.py、tests/connection-local-browser.cjs、tests/local-device-live-browser.cjs、dev/history/v0.16.0/v0.16.0-imp.md |
 | 対戦保存・全候補コンボ・JSON再現情報 | src/battle_store.py、src/noun-combo.js、src/reproduction.py、tests/battle_store_test.py、tests/battle-history-browser.cjs、tests/reproduction_test.py、tests/battle-storage-live-browser.cjs、dev/history/v0.17.0/v0.17.0-imp.md |
 | 可変件数・問い合わせ速度比較 | src/query-comparison.html、src/query-comparison.js、src/query-comparison-core.js、tests/battle-count-browser.cjs、tests/query-comparison-browser.cjs、tests/battle_batch_test.py、dev/history/v0.18.0/v0.18.0-imp.md |

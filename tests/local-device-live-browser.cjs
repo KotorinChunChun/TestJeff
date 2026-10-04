@@ -48,7 +48,7 @@ const base='http://127.0.0.1:8765';
   const download=page.waitForEvent('download');await page.locator('#export').click();
   const record=JSON.parse(fs.readFileSync(await (await download).path(),'utf8'));assert.equal(record.run.status,'完了');assert.equal(record.run.batch,true);
   await page.screenshot({path:'dev/testing/output/v0160-battle-live.png',fullPage:true});
-  for(const route of ['/','/nouns','/photos','/classification']){
+  for(const route of ['/samples','/nouns','/photos','/classification']){
    await page.goto(base+route);await waitConnection('local');
    assert.deepEqual(await page.locator('#fds-device option').evaluateAll(ns=>ns.map(n=>n.value)),['cpu','cuda']);
    if(route==='/nouns')await page.locator('#random:not([disabled])').waitFor();

@@ -7,7 +7,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  const headers={'X-TestJeff-Backend':'fds','X-TestJeff-Host':'127.0.0.1','X-TestJeff-Port':'8767','X-TestJeff-Device':'auto'};
  const before=await (await context.request.get('http://127.0.0.1:8765/testjeff/fds-models',{headers})).json();
  assert.equal(before.capabilities_version,2);
- for(const route of ['/','/nouns','/battle','/query-comparison','/photos','/classification']){
+ for(const route of ['/samples','/nouns','/battle','/query-comparison','/photos','/classification']){
   await page.goto('http://127.0.0.1:8765'+route);await page.waitForFunction(()=>document.querySelector('#connection-status')?.textContent==='接続済み');
   await page.locator('#fds-manage').click();await page.waitForFunction(()=>document.querySelectorAll('#fds-model-rows tr').length===3);
   assert.equal(await page.locator('#fds-model-rows').getByText('未導入',{exact:true}).count(),2);

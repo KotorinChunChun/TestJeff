@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TestJeff</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #fff; color: #000; font: 15px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    main { max-width: 900px; margin: auto; padding: 24px 32px; }
+    h1 { margin: 0 0 20px; font-size: 22px; }
+    .page-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .page-nav a { display: block; padding: 18px 20px; border: 1px solid #d8e4dc; border-radius: 10px; background: #f6faf7; color: #174b32; text-decoration: none; }
+    .page-nav a:hover { background: #e9f3ec; border-color: #4c9b5e; }
+    .page-nav a:focus-visible { outline: 2px solid #2f6949; outline-offset: 3px; }
+    @media (max-width: 540px) { main { padding: 20px 16px; } .page-nav { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TestJeff</h1>
+    <nav class="page-nav" aria-label="検証ページ">
+      <a href="/samples">サンプル実験</a>
+      <a href="/query-comparison">問い合わせ速度比較</a>
+      <a href="/battle">モデル対戦</a>
+      <a href="/nouns">名詞判定</a>
+      <a href="/photos">文字風景判定</a>
+      <a href="/classification">画像分類</a>
+    </nav>
+  </main>
+</body>
+</html>

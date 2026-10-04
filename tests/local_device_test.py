@@ -66,6 +66,22 @@ class LocalDeviceTest(unittest.TestCase):
         self.addCleanup(self.client.close)
         return self.client
 
+    def test_home_is_menu_and_samples_remain_available(self):
+        client = self.make_server(gpu=False)
+        home = client.get('/')
+        self.assertEqual(home.status_code, 200)
+        for path in ('samples', 'query-comparison', 'battle', 'nouns', 'photos', 'classification'):
+            self.assertIn(f'href="/{path}"', home.text)
+        self.assertNotIn('<form', home.text)
+        self.assertNotIn('<script', home.text)
+        for path in ('/samples', '/samples/'):
+            sample = client.get(path)
+            self.assertEqual(sample.status_code, 200)
+            self.assertIn('id="form"', sample.text)
+            self.assertIn('/assets/connection.js', sample.text)
+            self.assertIn('href="/"', sample.text)
+        self.loader.assert_not_called()
+
     def test_cpu_only_rejects_gpu_without_unloading(self):
         client = self.make_server(gpu=False)
         self.assertEqual(client.get('/testjeff/status').json()['devices'], ['cpu'])

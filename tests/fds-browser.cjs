@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
  const page=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[],records=[];page.on('pageerror',e=>errors.push(e.message));
  page.on('response',async response=>{if((response.url().endsWith('/v1/systemone')||response.url().endsWith('/testjeff/photos'))&&response.ok())records.push(await response.json());});
  await page.goto('http://127.0.0.1:8765/photos');await page.locator('#backend').selectOption('fds');await page.waitForFunction(()=>document.getElementById('connection-status').textContent==='接続済み');
- for(const route of ['/photos','/classification','/nouns','/battle','/']){
+ for(const route of ['/photos','/classification','/nouns','/battle','/samples']){
   await page.goto('http://127.0.0.1:8765'+route);assert.equal(await page.locator('#backend').inputValue(),'fds');await page.waitForFunction(()=>document.getElementById('connection-status').textContent==='接続済み');
   if(route==='/photos'||route==='/classification'){
    await page.waitForFunction(()=>document.getElementById('prompt-text').value.length>0);
@@ -13,7 +13,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),path
   }else if(route==='/nouns'){
    await page.waitForFunction(()=>!document.getElementById('random').disabled);await page.locator('#random').click();
    await page.waitForFunction(()=>!document.getElementById('random').disabled);assert.equal(await page.locator('#error').textContent(),'');
-  }else if(route==='/'){
+  }else if(route==='/samples'){
    await page.locator('#run').click();await page.waitForFunction(()=>!document.getElementById('run').disabled);
   }
  }
