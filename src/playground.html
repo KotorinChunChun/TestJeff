@@ -616,9 +616,11 @@
         $("empty").classList.add("hidden");
         $("results").replaceChildren();
         $("raw-section").classList.add("hidden");
-        const started = performance.now();
+        let started = performance.now();
         try {
           const body = requestBody();
+          let preparation=null;
+          if(globalThis.TestJeffConnection?.config.mode==='fds'){const prepared=await globalThis.TestJeffConnection.prepare(document.getElementById('fds-default-model').value);preparation=globalThis.TestJeffConnection.cleanManagement(prepared.management);started=performance.now();}
           const headers = { "Content-Type": "application/json" };
           if ($("key").value) headers.Authorization = `Bearer ${$("key").value}`;
           const response = await fetch("/v1/systemone", { method: "POST", headers, body: JSON.stringify(body) });
@@ -634,6 +636,7 @@
             const reasons = {401:"APIキーを確認してください。", 413:"入力が大きすぎます。32KiB以内にしてください。", 422:"質問の形式・選択肢・モデル名を確認してください。画像入力は使用できません。", 503:"モデルの準備状態またはGPUメモリを確認してください。", 529:"別の判定を実行中です。少し待って再実行してください。"};
             throw Error(reasons[response.status] || `判定に失敗しました（${response.status}）。`);
           }
+          if(preparation)data.preparation=preparation;
           render(data.answers);
           $("raw").textContent = JSON.stringify(data, null, 2);
           $("raw-section").classList.remove("hidden");

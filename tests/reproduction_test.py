@@ -8,11 +8,21 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from reproduction import reproduction, safe_request
+from reproduction import reproduction, safe_request, safe_metadata
 from fds_client import FDS
 
 
 class ReproductionTest(unittest.TestCase):
+    def test_management_preserves_settings_but_excludes_transient_approval(self):
+        source={'auto_unload':False,'preparation':{'approval_token':'secret',
+                 'approval':{'token':'another-secret','unload':[{'model':'qwen','device':'cpu'}]},
+                 'loaded_models':[{'model':'qwen','device':'cuda'}]}}
+        stored=safe_metadata(source)
+        self.assertNotIn('secret',json.dumps(stored))
+        self.assertFalse(stored['auto_unload'])
+        self.assertEqual(stored['preparation']['approval']['unload'][0]['device'],'cpu')
+        self.assertEqual(source['preparation']['approval_token'],'secret')
+
     def test_request_keeps_inputs_without_embedding_image(self):
         raw = b'original-image-content'
         image = 'data:image/jpeg;base64,' + base64.b64encode(raw).decode()

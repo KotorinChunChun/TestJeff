@@ -27,7 +27,7 @@ def application():
             packages[package] = version(package)
         except PackageNotFoundError:
             packages[package] = None
-    return {'name':'TestJeff', 'version':'0.19.0', 'source_sha256':digest.hexdigest(),
+    return {'name':'TestJeff', 'version':'0.20.0', 'source_sha256':digest.hexdigest(),
             'python':platform.python_version(), 'platform':platform.platform(), 'packages':packages}
 
 
@@ -40,15 +40,26 @@ def image_reference(value):
 
 def safe_request(payload, *, jev_defaults=True):
     data = payload.model_dump(mode='json', exclude_none=True) if hasattr(payload, 'model_dump') else copy.deepcopy(payload)
+    data.pop('approval_token', None)
     if jev_defaults:
         data.setdefault('orders', 1)
     data['images'] = [image_reference(value) for value in data.get('images', [])]
     return data
 
 
+def safe_metadata(value, approval=False):
+    """再現用の管理情報から一時承認を除外し、元データを変更しない。"""
+    if isinstance(value, dict):
+        return {key:safe_metadata(item, key == 'approval') for key,item in value.items()
+                if key != 'approval_token' and not (approval and key == 'token')}
+    if isinstance(value, list):
+        return [safe_metadata(item, approval) for item in value]
+    return copy.deepcopy(value)
+
+
 def reproduction(payload, execution):
     return {'schema_version':1, 'application':application(), 'request':safe_request(payload),
-            'execution':copy.deepcopy(execution)}
+            'execution':safe_metadata(execution)}
 
 
 IMAGE_PREPROCESSING = {

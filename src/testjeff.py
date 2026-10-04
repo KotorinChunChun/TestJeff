@@ -22,7 +22,7 @@ from knowledge import Evaluation, KnowledgeStore
 from battle_store import BattleRecord, BattleStore, BattleConflict, MAX_RECORD_BYTES
 from fds_client import FDS, API_IDS
 from image_store import ImageStore, classification_questions, classification_result
-from reproduction import reproduction, application, image_reference, IMAGE_PREPROCESSING
+from reproduction import reproduction, application, image_reference, IMAGE_PREPROCESSING, safe_metadata
 
 ROOT = Path(__file__).resolve().parents[1]
 MODELS = json.loads((ROOT / 'models.json').read_text(encoding='utf-8'))
@@ -210,7 +210,7 @@ def serve(name: str, port: int, device: str) -> None:
 
     @server.app.post('/testjeff/image-failure', dependencies=[Depends(server.authenticate)])
     def image_failure(body: PhotoFailure):
-        parameters = {**(body.parameters or {}), 'preprocessing':IMAGE_PREPROCESSING, 'application':application()}
+        parameters = {**safe_metadata(body.parameters or {}), 'preprocessing':IMAGE_PREPROCESSING, 'application':application()}
         if body.mode == 'classification':
             parameters['questions'] = classification_questions()
         elif parameters.get('prompts'):
@@ -268,7 +268,7 @@ def serve(name: str, port: int, device: str) -> None:
                                     'preprocessing':IMAGE_PREPROCESSING, 'original_image':image_reference(source),
                                     'input_image':image_reference(picture),
                                     'requested_device':remote.device if remote else http_request.headers.get('x-testjeff-local-device', 'server_default'),
-                                    'execution':result.get('execution'), 'application':application()}
+                                    'execution':result.get('execution'), 'preparation':safe_metadata(body.preparation), 'application':application()}
             if result.get('execution', {}).get('revision'):
                 result['revision'] = result['execution']['revision']
             if body.mode == 'classification':
@@ -430,14 +430,27 @@ def serve(name: str, port: int, device: str) -> None:
         device_token = None
         try:
             remote = FDS.from_request(request)
-            if remote and request.url.path in ('/testjeff/status','/testjeff/model','/testjeff/resources','/v1/systemone','/testjeff/fds-check'):
+            if remote and request.url.path in ('/testjeff/status','/testjeff/model','/testjeff/resources','/v1/systemone','/testjeff/fds-check','/testjeff/fds-models','/testjeff/fds-models/load','/testjeff/fds-models/unload'):
                 server.authenticate(request.headers.get('authorization'))
                 selected = request.headers.get('x-testjeff-model','qwen-2b')
                 if request.url.path == '/testjeff/resources':
                     return JSONResponse({'device':'remote','backend':'fds'})
+                if request.url.path == '/testjeff/fds-models':
+                    if request.method != 'GET':raise HTTPException(405,'GETを使用してください。')
+                    return JSONResponse(await run_in_threadpool(remote.models))
+                if request.url.path in ('/testjeff/fds-models/load','/testjeff/fds-models/unload'):
+                    if request.method != 'POST':raise HTTPException(405,'POSTを使用してください。')
+                    try:payload=await request.json()
+                    except ValueError as error:raise HTTPException(422,'JSONが不正です。') from error
+                    return JSONResponse(await run_in_threadpool(remote.manage,request.url.path.rsplit('/',1)[-1],payload))
                 if request.url.path == '/testjeff/model':
-                    selected = (await request.json()).get('model')
-                if request.url.path == '/v1/systemone':
+                    if request.method != 'POST':raise HTTPException(405,'POSTを使用してください。')
+                    try:payload=await request.json()
+                    except ValueError as error:raise HTTPException(422,'JSONが不正です。') from error
+                    if not isinstance(payload,dict):raise HTTPException(422,'モデル管理要求が不正です。')
+                    selected=payload.get('model')
+                    result=await run_in_threadpool(remote.load,selected,payload)
+                elif request.url.path == '/v1/systemone':
                     payload = await request.json()
                     selected = next((key for key,value in API_IDS.items() if value == payload.get('model')),selected)
                     result = await run_in_threadpool(remote.predict,payload,selected)

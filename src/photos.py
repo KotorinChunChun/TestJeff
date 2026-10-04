@@ -26,6 +26,7 @@ class PhotoInput(BaseModel):
     image: str | None = Field(default=None, max_length=11_000_000)
     sample_id: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
     prompts: PhotoPrompts = Field(default_factory=PhotoPrompts)
+    preparation: dict | None = None
 
     @model_validator(mode='after')
     def one_source(self):

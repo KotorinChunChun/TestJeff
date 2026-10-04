@@ -7,7 +7,7 @@ let statistics = loadStatistics();
 const rows = [];
 function connectionSnapshot() {
   const c=window.TestJeffConnection?.config||{};
-  return {mode:c.mode||'local',host:c.host??null,port:c.port??null,device:c.device??null,local_device:c.local_device??null};
+  return {mode:c.mode||'local',host:c.host??null,port:c.port??null,device:c.device??null,local_device:c.local_device??null,auto_unload:c.auto_unload!==false};
 }
 
 function renderResources(data) {
@@ -69,7 +69,7 @@ function clearResults() {
 }
 function setBusy(value) {window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));
   running = value;
-  for (const id of ['random', 'evaluate', 'target']) $(id).disabled = value || !ready;
+  for (const id of ['random', 'evaluate', 'target']) $(id).disabled = value || (!ready&&window.TestJeffConnection?.config.mode!=='fds');
   for (const id of ['model-select', 'key', 'reset', 'sort-order']) $(id).disabled = value;
   rows.forEach(row => {
     row.input.disabled = value;
@@ -146,10 +146,10 @@ async function saveFeedback(row, rating) {
   }
 }
 async function evaluate(accumulate = false) {
-  if (running || !ready) return;
+  if (running || (!ready && window.TestJeffConnection?.config.mode!=='fds')) return;
   showError();
   let requests;
-  const runModel = selectedModel, runTarget = $('target').value.trim(), runId = crypto.randomUUID(), timings = [], probabilities = [];
+  const runModel = $('model-select').value || selectedModel, runTarget = $('target').value.trim(), runId = crypto.randomUUID(), timings = [], probabilities = [];
   try {
     requests = rows.map(row => ({...NounCore.makeRequest(runTarget, row.input.value), model:MODEL_NAMES[runModel]}));
   }
@@ -159,6 +159,10 @@ async function evaluate(accumulate = false) {
   clearResults(); setBusy(true); controller = new AbortController();
   let completed = 0, failed = 0;
   try {
+    if(window.TestJeffConnection?.config.mode==='fds'){
+      try{const state=await window.TestJeffConnection.prepare(runModel);selectedModel=runModel;ready=true;parameters.management=state.management||null;}
+      catch(e){showError(e.message);$('progress').textContent=window.TestJeffConnection.isCancelled(e)?'中止':'準備失敗';return;}
+    }
     for (const [index, request] of requests.entries()) {
       if (controller.signal.aborted) break;
       const row = rows[index]; row.answer.textContent = '評価中'; $('progress').textContent = `${index + 1} / 10件を評価中`;
@@ -233,12 +237,12 @@ $('model-select').onchange = async () => {
     if ($('key').value) headers.Authorization = `Bearer ${$('key').value}`;
     const response = await fetch('/testjeff/model', {method:'POST', headers, body:JSON.stringify({model:wanted})});
     if (response.status === 401) {$('auth').classList.remove('hidden'); throw new Error('APIキーを入力してください。');}
-    if (!response.ok) throw new Error(response.status === 409 ? '別の評価が実行中です。終了後に選び直してください。' : 'モデルを読み込めません。小さいモデルを選んでください。');
+    if (!response.ok) {const data=await response.json().catch(()=>({}));throw new Error(data.detail?.message||(typeof data.detail==='string'?data.detail:'モデルを読み込めません。'));}
     const status = await response.json(); selectedModel = status.selected; ready = status.ready;
     $('progress').textContent = 'モデル切り替え完了';
   } catch (error) {
-    showError(error.message); $('progress').textContent = '切り替え失敗';
-    try {const state = await (await fetch('/testjeff/status')).json(); selectedModel = state.selected; ready = state.ready;} catch {ready = false;}
+    showError(error.message); $('progress').textContent = window.TestJeffConnection?.isCancelled?.(error)?'切り替えを中止しました':'切り替え失敗';
+    if(!window.TestJeffConnection?.isCancelled?.(error))try {const state = await (await fetch('/testjeff/status')).json(); selectedModel = state.selected; ready = state.ready;} catch {ready = false;}
   } finally {
     $('model-select').value = selectedModel || ''; renderStatistics(); setBusy(false);
   }

@@ -45,7 +45,7 @@ function renderSelectors(){
  document.querySelectorAll('.battle-model').forEach((select,i)=>{
   select.replaceChildren();for(const m of [{id:'',name:'未選択'},...allModels]){const option=element('option',m.name);option.value=m.id;
    const capability=window.TestJeffConnection?.capabilities?.capabilities?.find(c=>c.local_id===m.id);
-   if(m.id&&!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&window.TestJeffConnection.capabilities&&(!capability?.available||!capability.devices.includes(window.TestJeffConnection.config.device))){option.disabled=true;option.textContent+='（計測不能）';}
+   if(m.id&&!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&window.TestJeffConnection.capabilities&&!(window.TestJeffConnection.canUse?.(capability)??(capability?.available&&capability.devices.includes(window.TestJeffConnection.config.device)))){option.disabled=true;option.textContent+='（計測不能）';}
    select.append(option);
   }select.value=slots[i];select.disabled=busy;
  });
@@ -92,7 +92,7 @@ function render(){
     const card=element('section',undefined,'model-card');card.dataset.modelId=m.id;card.append(element('h2',m.name));
     if(m.inactive){card.append(element('div','処理しません','model-status'));$('summary').append(card);continue;}
     const metrics=element('div',undefined,'metrics');
-    const total=run?.query_totals?.[m.id],warmup=run?.warmup?.[m.id],remote=run?.execution?.[m.id]?.backend==='fds'||warmup?.execution?.backend==='fds'||warmup?.reproduction?.execution?.backend==='fds',load=remote?(warmup?.execution?.load_ms??warmup?.reproduction?.execution?.load_ms):run?.loads?.[m.id],memory=run?.memory?.[m.id],rank=ranks[m.id]?.rank;
+    const total=run?.query_totals?.[m.id],warmup=run?.warmup?.[m.id],remote=run?.execution?.[m.id]?.backend==='fds'||warmup?.execution?.backend==='fds'||warmup?.reproduction?.execution?.backend==='fds',load=remote?(run?.execution?.[m.id]?.management?.load_ms??warmup?.execution?.load_ms??warmup?.reproduction?.execution?.load_ms):run?.loads?.[m.id],memory=run?.memory?.[m.id],rank=ranks[m.id]?.rank;
     const fields=[['合計時間',total?`${total.total_ms.toFixed(1)} ms`:'—','total_ms'],['順位',rank?`${rank}位`:'—','rank'],['モデルロード時間',m.cloud?'—':Number.isFinite(load)?`${load.toFixed(1)} ms`:remote?'取得不可':'—','load_ms'],['GPU確保容量',!m.cloud&&Number.isFinite(memory)?`${memory.toFixed(2)} GiB`:'—','gpu_gib']];
     if(!batch)fields.push(['平均応答',s?`${s.mean.toFixed(1)} ms`:'—','mean_ms'],['最速件数',comparison&&s&&comparison.agreement!==null?`${comparison.wins[m.id]} / ${count}`:'—','wins']);
     for(const [label,value,key] of fields){
@@ -100,7 +100,7 @@ function render(){
       if(key==='rank'&&rank<=3){strong.replaceChildren();strong.className='rank-badge';strong.setAttribute('aria-label',`${rank}位`);const medal=element('span',['🥇','🥈','🥉'][rank-1],'rank-medal');medal.setAttribute('aria-hidden','true');strong.append(medal,document.createTextNode(`${rank}位`));}
       part.append(strong);
       if(key==='total_ms')part.title=total?`最初の問い合わせ開始から最後の応答まで（モデル読込・予備判定を除外）。成功した各件のAPI時間合計 ${total.response_sum_ms.toFixed(1)} ms・${total.count}件${total.complete?'':'・未完了'}`:'モデル読込・予備判定を除く、問い合わせ開始から最後の応答まで';
-      if(key==='load_ms')part.title=m.cloud?'クラウドモデルは対象外':remote?'予備判定でFDSが返したモデルロード時間。準備確認APIの通信時間は含みません。':'モデル切り替えAPIの送信から応答まで。既に読み込まれたモデルの確認時間も含みます。';
+      if(key==='load_ms')part.title=m.cloud?'クラウドモデルは対象外':remote?'FDSのロード操作が返した実ロード時間（旧記録は予備判定値）。承認待ち・通信時間は含みません。':'モデル切り替えAPIの送信から応答まで。既に読み込まれたモデルの確認時間も含みます。';
       if(key==='gpu_gib')part.title=m.cloud?'クラウドモデルは対象外':'サーバーから取得できたモデル用GPU確保容量';
       metrics.append(part);
     }
@@ -169,7 +169,7 @@ $('download-knowledge').onclick=async()=>{
 
 function publicConnection(){
   const source=window.TestJeffConnection?.config||{mode:'local'},result={};
-  for(const key of ['mode','host','port','device','local_device'])if(source[key]!==undefined)result[key]=source[key];
+  for(const key of ['mode','host','port','device','local_device','auto_unload'])if(source[key]!==undefined)result[key]=source[key];
   result.key=window.TestJeffConnection?.key||'local';return clone(result);
 }
 function updateRecordControls(){
@@ -276,7 +276,7 @@ async function battle(inputMethod='manual'){
   const connection=publicConnection(),selectedModels=models.filter(m=>!m.inactive);
   run={schema_version:2,selected_models:selectedModels.map(m=>m.id),columns:[...slots],batch:batchMode,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},partial_results:{},query_totals:{},skipped:{},loads:{},memory:{},revisions:{},execution:{},warmup:{},status:'実行中'};
   run.parameters={requests:clone(requests),candidate_count:candidates.length,input_method:inputMethod==='random'?'random':'manual',sort_mode:$('sort').value,filter_mode:$('filter').value,warmup_per_model:1,warmup_candidate_index:0,positive_threshold:.5,columns:[...slots],selected_models:[...run.selected_models],order:[...run.order],batch:batchMode,statistics_key:storageKey,
-    timing:{unit:'ms',clock:'performance.now()',single:'各API送信開始から応答JSON受信・検証まで',batch:`${candidates.length}件全体のAPI応答時間÷${candidates.length}（各件の実時間ではない平均換算）`,query_total:'最初の本判定問い合わせ開始から最後の応答まで。問い合わせ間の画面処理を含み、モデル読込・予備判定・最終応答後の描画・状態取得・保存を除外',response_sum:'成功した各件のAPI応答時間の合計。一括は各行の平均換算値の合計',load:'run.loadsはモデル切り替え・準備確認APIの送信から応答まで。ローカル表示はこの値（既ロード確認を含む）、FDS表示は予備判定が返したexecution.load_ms。いずれも速度集計から除外',warmup:'各モデルの最初の1件（速度集計から除外）'},
+    timing:{unit:'ms',clock:'performance.now()',single:'各API送信開始から応答JSON受信・検証まで',batch:`${candidates.length}件全体のAPI応答時間÷${candidates.length}（各件の実時間ではない平均換算）`,query_total:'最初の本判定問い合わせ開始から最後の応答まで。問い合わせ間の画面処理を含み、モデル読込・予備判定・最終応答後の描画・状態取得・保存を除外',response_sum:'成功した各件のAPI応答時間の合計。一括は各行の平均換算値の合計',load:'run.loadsはモデル切り替え・準備確認APIの送信から応答まで。ローカル表示はこの値（既ロード確認を含む）、FDS表示はモデル管理が返したmanagement.load_ms（旧記録は予備判定execution.load_ms）。いずれも速度集計から除外',warmup:'各モデルの最初の1件（速度集計から除外）'},
     client:{schema_version:2,origin:location.origin,language:navigator.language,user_agent:navigator.userAgent,performance_time_origin_ms:performance.timeOrigin},model_requests:{}};
   for(const m of selectedModels){const single=requests.map((request,i)=>m.cloud?{target,candidate:candidates[i]}:{...clone(request),model:m.api}),singlePath=m.cloud?'/testjeff/luna':'/v1/systemone',path=batchMode?'/testjeff/battle-batch':singlePath,payloads=batchMode?[{model:m.id,target,candidates:[...candidates]}]:single;run.parameters.model_requests[m.id]={model:m.api,single_path:singlePath,warmup:single[0],warmup_client_timeout_ms:requestTimeout(singlePath,single[0]),requests:payloads,path,client_timeout_ms:requestTimeout(path,payloads[0])};}
   try{
@@ -287,12 +287,12 @@ async function battle(inputMethod='manual'){
       let queryStarted=null,queryEnded=null,queryInFlight=false;
       try{
       const capability=window.TestJeffConnection?.capabilities?.capabilities?.find(item=>item.local_id===m.id);
-      if(!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&capability&&!capability.available)throw Error(capability.unavailable_reason||'サーバーで利用できません');
+      if(!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&capability&&!(window.TestJeffConnection.canUse?.(capability)??capability.available))throw Error(capability.unavailable_reason||'サーバーで利用できません');
       $('progress').textContent=`${m.name} 読み込み中`;
       if(!m.cloud){
       const start=performance.now(),state=await api('/testjeff/model',{model:m.id});
       run.loads[m.id]=performance.now()-start;run.revisions[m.id]=state.revision;
-      run.execution[m.id]={backend:state.backend||connection.mode,model:state.remote_model||m.api,device:state.device??null,revision:state.revision??null,endpoint:state.endpoint??null};
+      run.execution[m.id]={backend:state.backend||connection.mode,model:state.remote_model||m.api,device:state.device??null,revision:state.revision??null,endpoint:state.endpoint??null,management:state.management||null};
       if(!state.ready||state.selected!==m.id)throw Error('モデルを読み込めませんでした。');
       }else run.execution[m.id]={backend:'cloud',model:m.api,source:'Codex CLI',reasoning:'low'};
       if(stop)break;$('progress').textContent=`${m.name} 予備判定`;
@@ -320,14 +320,14 @@ async function battle(inputMethod='manual'){
       const evidence=run.results[m.id]?.find(item=>item.execution)?.execution||run.warmup[m.id]?.execution;
       if(evidence)run.execution[m.id]={...run.execution[m.id],...clone(evidence)};
       if(m.cloud){const evidence=run.results[m.id]?.[0]||run.warmup[m.id];run.execution[m.id]={...run.execution[m.id],source:evidence?.source||'Codex CLI',reasoning:evidence?.reasoning||'low'};}
-      }catch(e){recordQueryTotal(m.id,queryStarted,queryInFlight?performance.now():queryEnded,false);if(run.results[m.id]?.length)run.partial_results[m.id]=clone(run.results[m.id]);delete run.results[m.id];run.skipped[m.id]=e.message;}
+      }catch(e){if(window.TestJeffConnection?.isCancelled?.(e))stop=true;recordQueryTotal(m.id,queryStarted,queryInFlight?performance.now():queryEnded,false);if(run.results[m.id]?.length)run.partial_results[m.id]=clone(run.results[m.id]);delete run.results[m.id];run.skipped[m.id]=e.message;}
       render();
     }
     if(stop){run.status='中止';}
     else if(BattleCore.complete(run)){run.status='完了';stats=BattleCore.accumulate(stats,run);save();}else run.status='計測不能';
   }catch(e){run.status='失敗';run.error=e.message;error(e.message);}
   finally{
-    if(original){$('progress').textContent='元のモデルに戻しています';try{await api('/testjeff/model',{model:original});}catch(e){run.restore_error=e.message;error(`元のモデルに戻せませんでした。${e.message}`);}}
+    if(original){if(connection.mode==='fds')window.TestJeffConnection?.restoreSelection?.(original);else{$('progress').textContent='元のモデルに戻しています';try{await api('/testjeff/model',{model:original});}catch(e){run.restore_error=e.message;error(`元のモデルに戻せませんでした。${e.message}`);}}}
     run.ended_at=new Date().toISOString();completedRecord=clone({run,statistics:stats,connection});
     $('progress').textContent=run.status==='完了'?(Object.keys(run.skipped).length?`${BattleCore.measured(run).length}モデル計測完了・${Object.keys(run.skipped).length}モデル計測不能`:`${run.selected_models.length*candidates.length} / ${run.selected_models.length*candidates.length}件完了`):`${run.status}・累積には加算していません`;
     hideBattleWait();$('stop').classList.add('hidden');render();await saveRun(completedRecord);setBusy(false);render();
