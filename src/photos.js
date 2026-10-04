@@ -3,7 +3,8 @@ const $=id=>document.getElementById(id);
 const pageMode=location.pathname.startsWith('/classification')?'classification':'photos';
 let selectedFilename='画像';
 const modelNames={'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b'};
-let image=null,busy=false,previewUrl=null,defaults=null,samples=[],folderImages=[],stopFolder=false;
+let image=null,busy=false,previewUrl=null,defaults=null,classificationQuestions=null,samples=[],folderImages=[],stopFolder=false;
+function connectionSnapshot(){const c=window.TestJeffConnection?.config||{};return {mode:c.mode||'local',host:c.host??null,port:c.port??null,device:c.device??null,local_device:c.local_device??null};}
 function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['file','folder','choose-folder','model','key','run-samples','reset-prompts','prompt-text','prompt-landscape','prompt-coverage','prompt-monochrome'])$(id).disabled=value;$('evaluate').disabled=value||!image;$('run-folder').disabled=value||!folderImages.length;$('export-folder').disabled=value||!folderImages.length;}
 function clear(){ $('error').textContent='';$('summary').textContent='未判定';$('timing').textContent='';$('coverage').textContent='—';$('monochrome').textContent='—';for(const id of ['text-result','landscape-result']){const node=$(id);node.className='result';node.querySelector('.answer').textContent='—';node.querySelector('.percent').textContent='—';node.querySelector('.fill').style.width='0%';}}
 async function api(path,body){
@@ -38,7 +39,7 @@ function sampleRow(sample){const tr=document.createElement('tr');tr.dataset.id=s
 function renderSamples(items=samples,target='samples'){const fragment=document.createDocumentFragment();for(const sample of items)fragment.append(sampleRow(sample));$(target).replaceChildren(fragment);}
 function updateSample(sample,target){const row=Array.from($(target).children).find(row=>row.dataset.id===sample.id);if(row)row.replaceWith(sampleRow(sample));}
 
-async function loadSamples(){try{const data=await api('/testjeff/photo-samples');defaults=data.prompts;for(const key of Object.keys(defaults))if(!$('prompt-'+key).value)$('prompt-'+key).value=defaults[key];samples=data.samples;if(pageMode==='classification')for(const sample of samples)sample.result=null;for(const sample of samples){try{sample.image=(await api('/testjeff/photo-samples/'+sample.id)).image;}catch(e){sample.error=e.message;}}renderSamples();$('sample-status').textContent=`${samples.length}枚`;}catch(e){$('error').textContent=e.message;}}
+async function loadSamples(){try{const data=await api('/testjeff/photo-samples');defaults=data.prompts;classificationQuestions=data.classification_questions||null;for(const key of Object.keys(defaults))if(!$('prompt-'+key).value)$('prompt-'+key).value=defaults[key];samples=data.samples;if(pageMode==='classification')for(const sample of samples)sample.result=null;for(const sample of samples){try{sample.image=(await api('/testjeff/photo-samples/'+sample.id)).image;}catch(e){sample.error=e.message;}}renderSamples();$('sample-status').textContent=`${samples.length}枚`;}catch(e){$('error').textContent=e.message;}}
 $('key').onchange=()=>{loadSamples();loadHistory();};
 $('run-samples').onclick=async()=>{if(busy)return;setBusy(true);$('error').textContent='';let completed=0,failed=0;try{const selected=$('model').value,instructions=prompts();await prepareModel(selected);for(const sample of samples){$('sample-status').textContent=`${completed+failed+1} / ${samples.length}枚を判定中`;try{const started=performance.now();const data=await api('/testjeff/photos',{model:selected,sample_id:sample.id,prompts:instructions,mode:pageMode});data.total_ms=performance.now()-started;validate(data,selected);sample.result=data;sample.error=null;completed++;}catch(e){sample.result=null;sample.error=e.message;failed++;}updateSample(sample,'samples');}$('sample-status').textContent=`${completed}枚完了${failed?`・${failed}枚失敗`:''}`;$('status').textContent='サンプル判定完了';}catch(e){$('error').textContent=e.message;}finally{setBusy(false);loadHistory();}};
 api('/health').then(h=>$('auth').classList.toggle('hidden',!h.authentication)).catch(()=>{});
@@ -67,7 +68,9 @@ async function runFolder(){
   let completed=0,failed=0;const batchStarted=performance.now();
   try{
     const selected=$('model').value,instructions=prompts();
-    for(const entry of folderImages){entry.result=null;entry.error=null;}
+    const parameters={schema_version:1,mode:pageMode,model:selected,prompts:{...instructions},connection:connectionSnapshot(),threshold:0.5,
+      questions:pageMode==='classification'?JSON.parse(JSON.stringify(classificationQuestions)):null,input_order:folderImages.map(entry=>entry.name),started_at:new Date().toISOString(),timeout_ms:135000};
+    for(const entry of folderImages){entry.result=null;entry.error=null;entry.parameters=parameters;}
     renderSamples(folderImages,'folder-results');let modelReady=false;
     for(const entry of folderImages){
       if(stopFolder)break;
@@ -79,7 +82,7 @@ async function runFolder(){
         const picture=await readFolderFile(entry.file);
         const result=await api('/testjeff/photos',{model:selected,image:picture,prompts:instructions,mode:pageMode,filename:entry.name});
         validate(result,selected);result.total_ms=performance.now()-started;entry.result=result;completed++;
-      }catch(e){entry.error=e.message;failed++;try{await api('/testjeff/image-failure',{mode:pageMode,model:selected,filename:entry.name,error:e.message,file_size_bytes:entry.file.size,source_size:await imageDimensions(entry.file).catch(()=>null)});}catch(saveError){entry.error+='（失敗記録を保存できませんでした）';}}
+      }catch(e){entry.error=e.message;failed++;try{const saved=await api('/testjeff/image-failure',{mode:pageMode,model:selected,filename:entry.name,error:e.message,file_size_bytes:entry.file.size,source_size:await imageDimensions(entry.file).catch(()=>null),parameters:entry.parameters});if(saved.parameters)entry.parameters=saved.parameters;}catch(saveError){entry.error+='（失敗記録を保存できませんでした）';}}
       updateSample(entry,'folder-results');
     }
     $('folder-status').textContent=`${completed}枚完了・${failed}枚失敗・${folderImages.length-completed-failed}枚未判定`;
@@ -91,7 +94,7 @@ async function runFolder(){
 $('run-folder').onclick=runFolder;
 $('stop-folder').onclick=()=>{stopFolder=true;$('stop-folder').disabled=true;$('folder-status').textContent='現在の画像の判定後に停止します';};
 $('export-folder').onclick=()=>{
-  const rows=folderImages.map(({name,file,result,error})=>({name,size:file.size,last_modified:file.lastModified,result,error:error||null}));
+  const rows=folderImages.map(({name,file,result,error,parameters})=>({schema_version:1,name,size:file.size,last_modified:file.lastModified,parameters:parameters||null,result,error:error||null}));
   const url=URL.createObjectURL(new Blob([JSON.stringify(rows,null,2)],{type:'application/json'}));
   const link=document.createElement('a');link.href=url;link.download='画像判定結果.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };

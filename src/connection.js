@@ -31,10 +31,24 @@ window.fetch=async(input,options={})=>{
 };
 window.addEventListener('testjeff-busy',lock);
 window.addEventListener('DOMContentLoaded',()=>{
- const style=document.createElement('style');style.textContent='#connection-form [hidden]{display:none!important}#connection-form label{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}#connection-form input,#connection-form select{width:auto;margin:0;padding:6px;min-width:0}';document.head.append(style);
- const panel=document.createElement('form');panel.id='connection-form';panel.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;margin:8px 0;border:1px solid #cbd8cd;border-radius:8px;font:14px system-ui';
+ const style=document.createElement('style');style.textContent=`
+ .testjeff-page-header{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+ .testjeff-title-row{display:flex;align-items:center;gap:16px;overflow-x:auto;max-width:100%;min-width:0}
+ .testjeff-title-row>h1,.testjeff-title-row>.brand{flex:0 0 auto;white-space:nowrap;margin:0;font-size:clamp(16px,1.7vw,22px)}
+ .testjeff-page-header>nav{justify-content:flex-end;flex-wrap:wrap}
+ #connection-form{display:flex;gap:7px;align-items:center;flex:0 0 auto;margin:0 0 0 auto;padding:0;border:0;font:12px system-ui;white-space:nowrap}
+ #connection-form [hidden]{display:none!important}#connection-form label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+ #connection-form input,#connection-form select{width:auto;margin:0;padding:5px;min-width:0;font:inherit}
+ #connection-form #fds-host{width:118px}#connection-form #fds-port{width:65px!important}
+ #connection-status.connection-ok{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+ #connection-status:not(.connection-ok){white-space:normal;max-width:240px}
+ `;document.head.append(style);
+ const panel=document.createElement('form');panel.id='connection-form';panel.setAttribute('aria-label','処理先の設定');
  panel.innerHTML='<label>処理先 <select id="backend"><option value="local">ローカル</option><option value="fds">サーバー（FDS）</option></select></label><label>IP <input id="fds-host" size="16" aria-label="FDSのIPアドレス"></label><label>ポート <input id="fds-port" type="number" min="1" max="65535" style="width:85px"></label><label>デバイス <select id="fds-device"><option value="auto">自動</option></select></label><span id="connection-status" role="status"></span>';
- (document.querySelector('main')||document.body).prepend(panel);
+ const header=document.querySelector('main>header')||document.querySelector('body>header'),title=header?.querySelector('h1,.brand');
+ if(header&&title){header.classList.add('testjeff-page-header');const row=document.createElement('div');row.className='testjeff-title-row';header.prepend(row);row.append(title,panel);}
+ else (document.querySelector('main')||document.body).prepend(panel);
+ new MutationObserver(()=>{const status=document.getElementById('connection-status');status.classList.toggle('connection-ok',['ローカル','接続済み'].includes(status.textContent));}).observe(document.getElementById('connection-status'),{childList:true});
  const node=id=>document.getElementById(id);node('backend').value=config.mode;node('fds-host').value=config.host;node('fds-port').value=config.port;
  const draft=()=>({mode:node('backend').value,host:node('fds-host').value.trim(),port:Number(node('fds-port').value),device:node('backend').value==='fds'?(node('fds-device').value||config.device):config.device,local_device:node('backend').value==='local'?(node('fds-device').value||config.local_device):config.local_device});
  function show(){for(const id of ['fds-host','fds-port'])node(id).closest('label').hidden=node('backend').value!=='fds';}

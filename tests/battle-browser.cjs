@@ -10,10 +10,11 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   page.on('request',r=>{if(r.url().endsWith('/v1/systemone'))calls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/luna'))lunaCalls.push(r.postDataJSON());if(r.url().endsWith('/testjeff/model'))switches.push(r.postDataJSON().model);});
   if(!live)await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
-    const files={'/battle':'src/battle.html','/assets/battle.js':'src/battle.js','/assets/battle-core.js':'src/battle-core.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
+    const files={'/battle':'src/battle.html','/assets/battle.js':'src/battle.js','/assets/noun-combo.js':'src/noun-combo.js','/assets/battle-core.js':'src/battle-core.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
     if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(root,files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/battle'?'text/html':'application/json'});
     if(url.pathname==='/testjeff/knowledge'){if(process.env.KNOWLEDGE_URL)return route.continue();if(req.method()==='GET')return route.fulfill({json:{latest:knowledge.slice(-1),history:knowledge}});const value=req.postDataJSON();knowledge.push(value);return route.fulfill({json:value});}
     if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
+    if(url.pathname==='/testjeff/battle-runs')return route.fulfill({json:{id:1,run_id:req.postDataJSON().run.id}});
     if(url.pathname==='/testjeff/status')return route.fulfill({json:{selected,ready:true,reserved_gib:2}});
     if(url.pathname==='/testjeff/model'){selected=req.postDataJSON().model;return route.fulfill({json:{selected,ready:true,revision:'試験'}});}
     if(url.pathname==='/testjeff/luna'&&mode==='luna-error')return route.fulfill({status:503,json:{detail:'Luna試験エラー'}});
@@ -30,15 +31,15 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   assert.equal(await page.locator('.toolbar').count(),1);
   assert.equal(await page.locator('input[list]').count(),0);
   const targetCount=JSON.parse(fs.readFileSync(path.join(root,'src/data/abstract-nouns.json'),'utf8')).length;
-  assert.equal(await page.locator('#target-options option').count(),targetCount+1);
-  assert.equal(await page.locator('select[aria-label="候補1の一覧"] option').count(),1001);
-  await page.locator('#target-options').selectOption('道具');assert.equal(await page.locator('#target').inputValue(),'道具');
-  await page.locator('select[aria-label="候補1の一覧"]').selectOption('猫');assert.equal(await page.locator('input[aria-label="候補1"]').inputValue(),'猫');
+  await page.getByRole('button',{name:'質問する名詞の一覧を開く',exact:true}).click();assert.equal(await page.locator('#target-listbox [role="option"]').count(),targetCount);
+  await page.locator('#target-listbox').getByRole('option',{name:'道具',exact:true}).click();assert.equal(await page.locator('#target').inputValue(),'道具');
+  await page.getByRole('button',{name:'候補1の一覧を開く',exact:true}).click();assert.equal(await page.getByRole('listbox',{name:'候補1の候補一覧'}).getByRole('option').count(),1000);
+  await page.getByRole('listbox',{name:'候補1の候補一覧'}).getByRole('option',{name:'猫',exact:true}).click();assert.equal(await page.locator('input[aria-label="候補1"]').inputValue(),'猫');
   await page.locator('input[aria-label="候補1"]').fill('犬');
   const original=live?(await (await page.request.get(base+'/testjeff/status')).json()).selected:selected;
   await page.locator('#target').fill('持ち運べる物');
-  assert.equal(await page.locator('#target-options option').count(),targetCount+1);
-  assert.equal(await page.locator('select[aria-label="候補1の一覧"] option').count(),1001);
+  assert.equal(await page.locator('#target-listbox [role="option"]').count(),targetCount);
+  assert.equal(await page.locator('[aria-label="候補1の候補一覧"] [role="option"]').count(),1000);
   const candidates=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));
   await page.locator('#start').click();
   await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了',null,{timeout:240000});

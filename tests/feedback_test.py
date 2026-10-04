@@ -33,6 +33,24 @@ class FeedbackTest(unittest.TestCase):
                 with self.assertRaises(ValidationError):
                     Feedback.model_validate({**item.model_dump(), field:value})
 
+    def test_parameters_and_legacy_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=FeedbackStore(Path(directory)/'ratings.sqlite3')
+            item=Feedback(event_id=uuid4(),result_id=uuid4(),run_id=uuid4(),target='道具',candidate='鉛筆',model='qwen-2b',
+                          probability=.9,response_ms=10,evaluated_at='2026-10-04T12:00:00+09:00',rating='良かった')
+            legacy=store.save(item,'旧版')
+            self.assertNotIn('parameters',legacy)
+            self.assertEqual(store.save(item,'旧版'),legacy)
+            params={'schema_version':1,'connection':{'mode':'fds','device':'cpu'},'threshold':.5,'request':{'state':{'対象':'鉛筆'}}}
+            reproduction={'execution':{'backend':'fds','device':'cpu','revision':'サーバー版'}}
+            newer=item.model_copy(update={'event_id':uuid4(),'parameters':params,'reproduction':reproduction})
+            saved=store.save(newer,'サーバー版')
+            params['connection']['device']='cuda'
+            restored=store.records()[-1]
+            self.assertEqual(restored['parameters']['connection']['device'],'cpu')
+            self.assertEqual(restored['reproduction'],reproduction)
+            self.assertEqual(store.records()[0],legacy)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,9 +1,10 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
 const page=await browser.newPage(),batch=[],single=[];let selected='qwen-2b';const ids={'qwen-2b':'jeff-qwen3.5-2b','qwen-0.8b':'jeff-qwen3.5-0.8b','gemma-e2b':'jeff-gemma-4-e2b-it'};
-await page.route('**/*',async route=>{const r=route.request(),url=new URL(r.url()),files={'/battle':'src/battle.html','/assets/battle.js':'src/battle.js','/assets/battle-core.js':'src/battle-core.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
+await page.route('**/*',async route=>{const r=route.request(),url=new URL(r.url()),files={'/battle':'src/battle.html','/assets/battle.js':'src/battle.js','/assets/noun-combo.js':'src/noun-combo.js','/assets/battle-core.js':'src/battle-core.js','/assets/nouns-core.js':'src/nouns-core.js','/testjeff/nouns':'src/data/nouns.json','/testjeff/abstract-nouns':'src/data/abstract-nouns.json'};
 if(files[url.pathname])return route.fulfill({body:fs.readFileSync(path.join(__dirname,'..',files[url.pathname]),'utf8'),contentType:url.pathname.endsWith('.js')?'text/javascript':url.pathname==='/battle'?'text/html':'application/json'});
 if(url.pathname==='/health')return route.fulfill({json:{authentication:false}});
+if(url.pathname==='/testjeff/battle-runs')return route.fulfill({json:{id:1,run_id:r.postDataJSON().run.id}});
 if(url.pathname==='/testjeff/status')return route.fulfill({json:{selected,ready:true}});
 if(url.pathname==='/testjeff/model'){selected=r.postDataJSON().model;return route.fulfill({json:{selected,ready:true}});}
 if(url.pathname==='/testjeff/battle-batch'){const b=r.postDataJSON();batch.push(b);return route.fulfill({json:{results:b.candidates.map(()=>b.model==='gpt-5.6-luna'?{verdict:true}:{probability:.8})}});}

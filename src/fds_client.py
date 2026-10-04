@@ -6,6 +6,7 @@ import socket
 import urllib.request
 import urllib.error
 from fastapi import HTTPException
+from reproduction import reproduction, safe_request
 
 MODEL_IDS={'qwen-0.8b':'jeff-qwen-0.8b','qwen-2b':'jeff-qwen-2b','gemma-e2b':'jeff-gemma-e2b'}
 API_IDS={'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b','gemma-e2b':'jeff-gemma-4-e2b-it'}
@@ -76,13 +77,14 @@ class FDS:
         state=payload.get('state','')
         body={'model':MODEL_IDS[selected],'device':self.device,'state':state if isinstance(state,str) else json.dumps(state,ensure_ascii=False),
               'questions':questions,'images':payload.get('images',[]),'timeout_seconds':120,'priority':'normal'}
-        results=[]
+        results=[]; submitted=[]
         for turn in range(orders):
             request=copy.deepcopy(body)
             if turn:
                 for q in request['questions'].values():
                     if isinstance(q.get('criteria'),dict):q['criteria']=dict(reversed(list(q['criteria'].items())))
                     elif isinstance(q.get('criteria'),list):q['criteria'].reverse()
+            submitted.append(safe_request(request))
             result=self.call('/v1/decisions',request)
             if result.get('model')!=MODEL_IDS[selected] or not isinstance(result.get('answers'),dict):raise HTTPException(502,'FDSのモデルまたは応答が一致しません。')
             for key,answer in result['answers'].items():
@@ -102,7 +104,10 @@ class FDS:
                     keys,_=options(q)
                     result['answers'][key]=make_answer(q,[sum(r['answers'][key]['probabilities'][k] for r in results)/2 for k in keys])
         result['execution']={'backend':'fds','endpoint':self.url,'model':MODEL_IDS[selected],'device':result.get('device'),
+                             'requested_device':self.device,'orders':orders,'timeout_seconds':120,'priority':'normal',
                              'revision':result.get('revision'),'request_ids':[r.get('request_id') for r in results],
                              **{k:sum(r.get(k,0) for r in results) for k in ('queue_ms','load_ms','inference_ms','total_ms')}}
         result['model']=API_IDS[selected]
+        result['reproduction']=reproduction(payload,result['execution'])
+        result['reproduction']['submitted_requests']=submitted
         return result

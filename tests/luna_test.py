@@ -1,5 +1,7 @@
 """CLIのモデル固定・失敗・排他・真偽型を、外部通信なしで確認する。"""
 import json
+import hashlib
+import tempfile
 import sys
 import subprocess
 import unittest
@@ -31,6 +33,17 @@ class LunaTest(unittest.TestCase):
             self.assertEqual(args[args.index('-m')+1], 'gpt-5.6-luna')
             self.assertIn('read-only', args)
             self.assertIn('--output-schema', args)
+            metadata=result['reproduction']
+            self.assertEqual(metadata['request']['prompt'],process.communicate.call_args.args[0])
+            self.assertEqual(metadata['request']['input'],body.model_dump())
+            self.assertEqual(metadata['request']['output_schema'],json.loads(Path(args[args.index('--output-schema')+1]).read_text(encoding='utf-8')))
+            self.assertFalse(metadata['request']['batch'])
+            self.assertEqual(metadata['execution']['timeout_seconds'],process.communicate.call_args.kwargs['timeout'])
+            self.assertEqual(metadata['execution']['options']['approval'],args[args.index('-a')+1])
+            self.assertEqual(metadata['execution']['options']['sandbox'],args[args.index('--sandbox')+1])
+            self.assertIn('--ignore-user-config',args)
+            self.assertFalse(metadata['execution']['options']['shell_tool'])
+            self.assertEqual(metadata['execution']['options']['web_search'],'disabled')
             process.returncode = 1
             with self.assertRaises(RuntimeError):
                 luna.classify(body)
@@ -54,6 +67,9 @@ class LunaTest(unittest.TestCase):
             self.assertEqual(result['verdicts'],[True,False]*5)
             self.assertEqual(start.call_count,1)
             self.assertTrue(any('luna-batch-schema.json' in arg for arg in start.call_args.args[0]))
+            self.assertTrue(result['reproduction']['request']['batch'])
+            self.assertEqual(result['reproduction']['request']['prompt'],process.communicate.call_args.args[0])
+            self.assertIn('verdicts',result['reproduction']['request']['output_schema']['properties'])
         with self.assertRaises(ValidationError):
             luna.BatchVerdict(verdicts=[True]*9)
 
@@ -68,6 +84,19 @@ class LunaTest(unittest.TestCase):
             if sys.platform == 'win32':
                 self.assertEqual(terminate.call_args.args[0], ['taskkill', '/PID', '123', '/T', '/F'])
             self.assertFalse(luna.LOCK.locked())
+
+    def test_executable_identity_without_path(self):
+        with tempfile.TemporaryDirectory() as directory:
+            binary=Path(directory)/'codex.exe'
+            binary.write_bytes(b'CLI identification test')
+            before=luna._executable_sha256.cache_info().hits
+            first=luna.executable_identity(str(binary))
+            self.assertEqual(first,luna.executable_identity(str(binary)))
+            self.assertEqual(luna._executable_sha256.cache_info().hits,before+1)
+            self.assertEqual(first['sha256'],hashlib.sha256(binary.read_bytes()).hexdigest())
+            self.assertNotIn(directory,json.dumps(first))
+            binary.write_bytes(b'updated CLI')
+            self.assertNotEqual(first,luna.executable_identity(str(binary)))
 
 
 if __name__ == '__main__':

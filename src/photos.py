@@ -42,6 +42,7 @@ class PhotoFailure(BaseModel):
     error: str = Field(max_length=2000)
     file_size_bytes: int | None = Field(default=None, ge=0)
     source_size: tuple[int, int] | None = None
+    parameters: dict | None = None
 
 
 def prepare_image(value):

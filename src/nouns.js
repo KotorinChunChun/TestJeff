@@ -5,6 +5,10 @@ const MODEL_NAMES = {'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b'
 const STORAGE_KEY = 'testjeff-nouns-stats-v1'+(window.TestJeffConnection?.key&&window.TestJeffConnection.key!=='local'?':'+window.TestJeffConnection.key:'');
 let statistics = loadStatistics();
 const rows = [];
+function connectionSnapshot() {
+  const c=window.TestJeffConnection?.config||{};
+  return {mode:c.mode||'local',host:c.host??null,port:c.port??null,device:c.device??null,local_device:c.local_device??null};
+}
 
 function renderResources(data) {
   const size = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? `${(value / 2**30).toFixed(2)} GiB` : '取得不可';
@@ -150,6 +154,8 @@ async function evaluate(accumulate = false) {
     requests = rows.map(row => ({...NounCore.makeRequest(runTarget, row.input.value), model:MODEL_NAMES[runModel]}));
   }
   catch (error) {showError(error.message); return;}
+  const parameters={schema_version:1,connection:connectionSnapshot(),statistics_key:STORAGE_KEY,sort_mode:$('sort-order').value,
+    accumulate,input_method:accumulate?'random':'manual',threshold:0.5,started_at:new Date().toISOString()};
   clearResults(); setBusy(true); controller = new AbortController();
   let completed = 0, failed = 0;
   try {
@@ -173,7 +179,9 @@ async function evaluate(accumulate = false) {
         row.answer.className = probability >= .5 ? 'answer yes' : 'answer no';
         row.elapsed = elapsed;
         row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:request.state.対象,
-          execution:data.execution||null, model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
+          execution:data.execution||null, reproduction:data.reproduction||null,
+          parameters:{...parameters,request:JSON.parse(JSON.stringify({orders:1,...request})),input_index:index},
+          model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
         row.timing.textContent = `${elapsed.toFixed(1)} ms`; timings.push(elapsed); probabilities.push(probability);
         completed++;
       } catch (error) {

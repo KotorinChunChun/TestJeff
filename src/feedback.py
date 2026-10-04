@@ -22,6 +22,8 @@ class Feedback(BaseModel):
     response_ms: float = Field(ge=0)
     evaluated_at: AwareDatetime
     execution: dict | None = None
+    parameters: dict | None = None
+    reproduction: dict | None = None
     rating: Literal['良かった', '悪かった']
 
 
@@ -42,7 +44,7 @@ class FeedbackStore:
             connection.close()
 
     def save(self, feedback: Feedback, revision: str):
-        payload = feedback.model_dump(mode='json')
+        payload = feedback.model_dump(mode='json', exclude_none=True)
         payload['revision'] = revision
         payload['sentence'] = f'「{feedback.candidate}」は「{feedback.target}」' + ('です' if feedback.probability >= .5 else 'ではありません')
         with self.connect() as connection:

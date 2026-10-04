@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pathlib import Path
 from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from photos import prepare_image, questions, PhotoInput, PhotoPrompts, PhotoSamples
+from photos import prepare_image, questions, PhotoInput, PhotoPrompts, PhotoSamples, PhotoFailure
 
 
 def encode(image, fmt='PNG'):
@@ -18,6 +18,13 @@ def encode(image, fmt='PNG'):
 
 
 class PhotosTest(unittest.TestCase):
+    def test_failure_parameters_compatible(self):
+        old=PhotoFailure(mode='photos',model='qwen-2b',filename='写真.png',error='対象外')
+        self.assertIsNone(old.parameters)
+        params={'connection':{'mode':'fds','device':'cpu'},'prompts':{'text':'文字の指示'},'threshold':.5}
+        current=PhotoFailure.model_validate({**old.model_dump(),'parameters':params})
+        self.assertEqual(current.model_dump()['parameters'],params)
+
     def test_resize(self):
         data, original, size = prepare_image(encode(Image.new('RGBA', (2048, 1024), (0, 0, 0, 0))))
         self.assertEqual(original, [2048, 1024])
