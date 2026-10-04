@@ -37,6 +37,10 @@ class KnowledgeTest(unittest.TestCase):
             self.assertEqual(len(restored['history']), 2)
             self.assertEqual(len(restored['latest']), 1)
             self.assertEqual(restored['latest'][0]['annotations'][0]['expected'], 'です')
+            partial = {**run, 'id':str(uuid4()), 'results':{MODELS[0]:run['results'][MODELS[0]]}, 'skipped':{m:'未導入' for m in MODELS[1:]}}
+            saved = store.save_evaluation(Evaluation(event_id=uuid4(), run=partial, annotations=annotations))
+            self.assertEqual(set(saved['scores']), {MODELS[0]})
+            self.assertEqual(len(saved['run']['skipped']), 3)
             run['results'][MODELS[0]].pop()
             with self.assertRaises(ValidationError):
                 Evaluation(event_id=uuid4(), run=run, annotations=annotations)

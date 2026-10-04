@@ -8,4 +8,8 @@ const stats=core.accumulate(core.accumulate(null,run),run);
 assert.equal(stats.runs,2);assert.equal(stats.models['qwen-2b'].count,20);
 assert.equal(stats.models['qwen-2b'].totalMs/20,20);
 run.results['qwen-2b'].pop();assert.throws(()=>core.accumulate(stats,run));
+const partial={results:{'qwen-0.8b':run.results['qwen-0.8b']},skipped:Object.fromEntries(core.models.slice(1).map(m=>[m.id,'未導入']))};
+assert(core.complete(partial));assert.equal(core.compare(partial).agreement,null);
+const partialStats=core.accumulate(null,partial);assert.equal(partialStats.comparisons,0);assert.equal(partialStats.models['qwen-2b'],undefined);
+assert(!core.complete({results:{},skipped:Object.fromEntries(core.models.map(m=>[m.id,'未導入']))}));
 console.log('比較集計・中央値・一致数・最速件数・不完全回の除外を確認しました。');

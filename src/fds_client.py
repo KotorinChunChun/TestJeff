@@ -47,12 +47,15 @@ class FDS:
         if selected not in MODEL_IDS:raise HTTPException(422,'モデルを選んでください。')
         health=self.call('/health')
         if health.get('service')!='FastDecisionServer':raise HTTPException(502,'接続先はFDSではありません。')
-        models=self.call('/v1/models').get('models',[])
+        capabilities=self.call('/v1/models')
+        models=capabilities.get('models',[])
         model=next((m for m in models if m['id']==MODEL_IDS[selected]),None)
         if model is None:raise HTTPException(422,'指定モデルはFDSに登録されていません。')
-        return {'selected':selected,'ready':bool(health.get('ready')),'models':list(MODEL_IDS),'revision':model['revision'],
+        return {'selected':selected,'ready':bool(health.get('accepting',health.get('ready')) and model.get('available',True) and self.device in model.get('devices',[])),'models':list(MODEL_IDS),'revision':model['revision'],
                 'device':self.device,'backend':'fds','endpoint':self.url,'remote_model':model['id'],
-                'allocated_gib':None,'reserved_gib':None,'health':health}
+                'allocated_gib':None,'reserved_gib':None,'health':health,'devices':capabilities.get('devices',[]),
+                'capabilities_version':capabilities.get('capabilities_version',0),
+                'capabilities':[{**m,'local_id':next((k for k,v in MODEL_IDS.items() if v==m['id']),None)} for m in models]}
 
     def predict(self,payload,selected):
         if selected not in MODEL_IDS:raise HTTPException(422,'モデルを選んでください。')

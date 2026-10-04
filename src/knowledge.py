@@ -23,16 +23,17 @@ class Snapshot(BaseModel):
     candidates: list[str] = Field(min_length=10, max_length=10)
     results: dict[str, list[Prediction]]
     status: Literal['完了']
+    skipped: dict[str,str] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def complete(self):
         if any(not word.strip() or len(word) > 80 for word in self.candidates):
             raise ValueError('候補が不正です。')
-        if set(self.results) != set(MODELS):
-            raise ValueError('4モデルの結果が必要です。')
+        if not self.results or set(self.results) & set(self.skipped) or set(self.results) | set(self.skipped) != set(MODELS):
+            raise ValueError('全モデルの結果または計測不能の理由が必要です。')
         for model, items in self.results.items():
             if len(items) != 10 or any((item.verdict is None if model == 'gpt-5.6-luna' else item.probability is None) for item in items):
-                raise ValueError('完了した40件の判定が必要です。')
+                raise ValueError('計測したモデルごとに10件の判定が必要です。')
         return self
 
 

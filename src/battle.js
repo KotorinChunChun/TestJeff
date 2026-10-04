@@ -8,7 +8,7 @@ let pendingKnowledge=null,knowledgeSaved=false;
 function loadStats(){stats=null;try{
   const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
   if(saved&&Number.isInteger(saved.runs)&&saved.runs>=0&&Number.isFinite(saved.agreement)&&saved.agreement>=0&&saved.agreement<=saved.runs*10&&models.every(m=>{
-    const v=saved.models?.[m.id];return v&&v.count===saved.runs*10&&['totalMs','yes','probabilitySum','wins'].every(k=>Number.isFinite(v[k])&&v[k]>=0)&&v.yes<=v.count&&v.probabilitySum<=v.count&&v.wins<=v.count;
+    const v=saved.models?.[m.id];return !v||v.count>0&&v.count<=saved.runs*10&&v.count%10===0&&['totalMs','yes','probabilitySum','wins'].every(k=>Number.isFinite(v[k])&&v[k]>=0)&&v.yes<=v.count&&v.probabilitySum<=v.count&&v.wins<=v.count;
   }))stats=saved;
 }catch{}}
 loadStats();
@@ -31,24 +31,25 @@ function render(){
     const items=run?.results[m.id]||[],s=items.length?BattleCore.summarize(items):null,old=stats?.models[m.id];
     const card=element('section',undefined,'model-card');card.append(element('h2',m.name));
     const metrics=element('div',undefined,'metrics');
-    for(const [label,value] of [[run?.batch?'平均換算/件':'平均応答',s?`${s.mean.toFixed(1)} ms`:'—'],['速度順位',finished?`${ordered.findIndex(x=>x.mean===s.mean)+1}位`:'—'],[run?.batch?'10件全体':'中央値',s?`${(run?.batch?s.totalMs:s.median).toFixed(1)} ms`:'—'],['最速件数',comparison?`${comparison.wins[m.id]} / 10`:'—']]){
+    for(const [label,value] of [[run?.batch?'平均換算/件':'平均応答',s?`${s.mean.toFixed(1)} ms`:'—'],['速度順位',finished&&s?`${ordered.findIndex(x=>x.mean===s.mean)+1}位`:'—'],[run?.batch?'10件全体':'中央値',s?`${(run?.batch?s.totalMs:s.median).toFixed(1)} ms`:'—'],['最速件数',comparison&&s&&comparison.agreement!==null?`${comparison.wins[m.id]} / 10`:'—']]){
       const part=element('div',label);part.append(element('strong',value));metrics.append(part);
     }
+    if(run?.skipped?.[m.id])card.append(element('div','計測不能：'+run.skipped[m.id],'sub'));
     card.append(metrics,element('div',`判定 ${items.length}/10件・肯定 ${s?.yes||0}件・平均確率 ${m.cloud?'対象外':s?(s.probabilitySum/s.count*100).toFixed(1)+'%':'—'}`, 'sub'));
     if(m.cloud)card.append(element('div','Codex CLI・クラウド通信／起動込み・確率なし','sub'));
     const load=run?.loads[m.id];if(!m.cloud)card.append(element('div',`切り替え ${load===undefined?'—':(load/1000).toFixed(2)+'秒'}・GPU確保 ${Number.isFinite(run?.memory[m.id])?run.memory[m.id].toFixed(2)+' GiB':'—'}`,'sub'));
     card.append(element('div',`累積 ${old?.count||0}件・平均 ${old?.count?(old.totalMs/old.count).toFixed(1)+' ms':'—'}・最速 ${old?.wins||0}件`,'sub'));
     $('summary').append(card);
   }
-  $('agreement').textContent=`判定一致 ${comparison?comparison.agreement+' / 10件':'—'}`;
-  $('cumulative').textContent=`累積 ${stats?.runs||0}回・一致 ${stats?.agreement||0} / ${(stats?.runs||0)*10}件`;
+  $('agreement').textContent=`判定一致 ${comparison&&comparison.agreement!==null?comparison.agreement+' / 10件':'—'}`;
+  $('cumulative').textContent=`累積 ${stats?.runs||0}回・一致 ${stats?.agreement||0} / ${(stats?.comparisons??stats?.runs??0)*10}件`;
   $('export').disabled=!run;
   for(const row of rows){
     const values=models.map(m=>run?.results[m.id]?.[row.index]);
-    const full=values.every(Boolean),fastest=full?Math.min(...values.map(x=>x.ms)):null;
-    row.difference=full&&!values.every(x=>BattleCore.positive(x)===BattleCore.positive(values[0]));
+    const comparable=values.filter(Boolean);const full=finished&&comparable.length>=2,fastest=full?Math.min(...comparable.map(x=>x.ms)):null;
+    row.difference=full&&!comparable.every(x=>BattleCore.positive(x)===BattleCore.positive(comparable[0]));
     row.tr.classList.toggle('mismatch',row.difference);
-    values.forEach((item,j)=>{const cell=row.cells[j];cell.replaceChildren();if(!item){cell.textContent='未評価';return;}
+    values.forEach((item,j)=>{const cell=row.cells[j];cell.replaceChildren();if(!item){cell.textContent=run?.skipped?.[models[j].id]?'計測不能':'未評価';cell.title=run?.skipped?.[models[j].id]||'';return;}
       const isFastest=full&&item.ms===fastest;
       const box=element('div',undefined,isFastest?'answer-box fastest':'answer-box');
       if(isFastest)box.title='この候補で最速';
@@ -78,7 +79,7 @@ function reviewChanged(){pendingKnowledge=null;knowledgeSaved=false;$('knowledge
 function renderQuality(){
   document.querySelectorAll('.quality-score').forEach(node=>node.remove());
   if(!reviewable())return;
-  const notes=annotations();models.forEach((m,j)=>{let correct=0,total=0;notes.forEach((a,i)=>{if(a.expected==='です'||a.expected==='ではありません'){total++;if(BattleCore.positive(run.results[m.id][i])===(a.expected==='です'))correct++;}});$('summary').children[j].append(element('div',`ユーザー判定と一致 ${correct} / ${total}件${total?'（'+(correct/total*100).toFixed(1)+'%）':''}`,'sub quality-score'));});
+  const notes=annotations();models.forEach((m,j)=>{if(!run.results[m.id]?.length)return;let correct=0,total=0;notes.forEach((a,i)=>{if(a.expected==='です'||a.expected==='ではありません'){total++;if(BattleCore.positive(run.results[m.id][i])===(a.expected==='です'))correct++;}});$('summary').children[j].append(element('div',`ユーザー判定と一致 ${correct} / ${total}件${total?'（'+(correct/total*100).toFixed(1)+'%）':''}`,'sub quality-score'));});
 }
 $('save-knowledge').onclick=async()=>{
   if(busy||!reviewable())return;
@@ -116,11 +117,15 @@ async function battle(){
   try{requests=candidates.map(word=>NounCore.makeRequest(target,word));}catch(e){error(e.message);return;}
   clearReviews();setBusy(true);stop=false;let original=null;
   const local=models.filter(m=>!m.cloud),offset=(stats?.runs||0)%local.length,order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
-  run={batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
+  run={batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
   try{
-    original=(await api('/testjeff/status')).selected;
+    try{original=(await api('/testjeff/status')).selected;}catch(e){run.connection_error=e.message;}
     for(const m of order){
-      if(stop)break;$('progress').textContent=`${m.name} 読み込み中`;
+      if(stop)break;
+      try{
+      const capability=window.TestJeffConnection?.capabilities?.capabilities?.find(item=>item.local_id===m.id);
+      if(!m.cloud&&window.TestJeffConnection?.config.mode==='fds'&&capability&&!capability.available)throw Error(capability.unavailable_reason||'サーバーで利用できません');
+      $('progress').textContent=`${m.name} 読み込み中`;
       if(!m.cloud){
       const start=performance.now(),state=await api('/testjeff/model',{model:m.id});
       run.loads[m.id]=performance.now()-start;run.revisions[m.id]=state.revision;
@@ -142,14 +147,15 @@ async function battle(){
       if(measured.selected!==m.id)throw Error('別の画面でモデルが変更されました。');
       run.memory[m.id]=measured.reserved_gib;
       }
+      }catch(e){delete run.results[m.id];run.skipped[m.id]=e.message;}
       render();
     }
     if(stop){run.status='中止';}
-    else if(BattleCore.complete(run)){run.status='完了';stats=BattleCore.accumulate(stats,run);save();}
+    else if(BattleCore.complete(run)){run.status='完了';stats=BattleCore.accumulate(stats,run);save();}else run.status='計測不能';
   }catch(e){run.status='失敗';error(e.message);}
   finally{
     if(original){$('progress').textContent='元のモデルに戻しています';try{await api('/testjeff/model',{model:original});}catch(e){error(`元のモデルに戻せませんでした。${e.message}`);}}
-    $('progress').textContent=run.status==='完了'?'40 / 40件完了':`${run.status}・累積には加算していません`;
+    $('progress').textContent=run.status==='完了'?(Object.keys(run.skipped).length?`${BattleCore.measured(run).length}モデル計測完了・${Object.keys(run.skipped).length}モデル計測不能`:'40 / 40件完了'):`${run.status}・累積には加算していません`;
     setBusy(false);render();
   }
 }

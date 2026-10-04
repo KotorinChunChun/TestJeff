@@ -66,9 +66,9 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   if(!live){
     const before=calls.length;await page.locator('#target').fill(' ');await page.locator('#start').click();assert.equal(calls.length,before);
     await page.locator('#target').fill('道具');mode='slow';await page.locator('#start').click();await page.locator('#stop').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('中止'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
-    mode='error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('失敗'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
-    mode='luna-error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#error').textContent()).includes('Luna試験エラー'));assert.equal(await page.locator('.result').count(),30);assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
-    mode='normal';const offset=switches.length;await page.locator('#random').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了');assert.equal(switches[offset],'qwen-2b');assert((await page.locator('#cumulative').textContent()).includes('累積 2回'));
+    mode='error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('3モデル計測不能'));assert((await page.locator('#cumulative').textContent()).includes('累積 2回'));
+    mode='luna-error';await page.locator('#start').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('1モデル計測不能'));assert.equal(await page.locator('.result').count(),30);assert((await page.locator('#cumulative').textContent()).includes('累積 3回'));
+    mode='normal';const offset=switches.length;await page.locator('#random').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了');assert.equal(switches[offset],'qwen-0.8b');assert((await page.locator('#cumulative').textContent()).includes('累積 4回'));
   }
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.json`),JSON.stringify({record,errors},null,2));
   console.log('4モデル同一入力・44送信・予備判定除外・集計保存・復元・JSON出力を確認しました。');

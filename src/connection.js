@@ -18,6 +18,7 @@ window.fetch=async(input,options={})=>{
  const tracked=inferencePaths.has(url.pathname);if(tracked){active++;lock();}
  try{
   const response=await originalFetch(input,{...options,headers});
+  if(response.ok&&['/testjeff/status','/testjeff/model'].includes(url.pathname)&&config.mode==='fds'){const data=await response.clone().json();if(data.capabilities){window.TestJeffConnection.capabilities=data;window.dispatchEvent(new Event('fds-capabilities'));}}
   if(response.ok&&url.pathname==='/testjeff/model')selected=(await response.clone().json()).selected;
   return response;
  }finally{if(tracked){active--;lock();}}
@@ -30,14 +31,32 @@ window.addEventListener('DOMContentLoaded',()=>{
  (document.querySelector('main')||document.body).prepend(panel);
  const node=id=>document.getElementById(id);node('backend').value=config.mode;node('fds-host').value=config.host;node('fds-port').value=config.port;node('fds-device').value=config.device;
  const draft=()=>({mode:node('backend').value,host:node('fds-host').value.trim(),port:Number(node('fds-port').value),device:node('fds-device').value});
- function show(){for(const id of ['fds-host','fds-port','fds-device','fds-check'])node(id).closest(id==='fds-check'?'button':'label').hidden=node('backend').value!=='fds';}
- node('backend').onchange=show;show();node('connection-status').textContent=config.mode==='fds'?`FDS ${config.host}:${config.port}`:'ローカル';
+ function show(){for(const id of ['fds-host','fds-port','fds-device','fds-check'])node(id).closest(id==='fds-check'?'button':'label').hidden=node('backend').value!=='fds';if(node('fds-models'))node('fds-models').hidden=node('backend').value!=='fds';}
+ node('backend').onchange=()=>{show();if(node('backend').value==='fds')node('fds-check').click();};show();node('connection-status').textContent=config.mode==='fds'?`FDS ${config.host}:${config.port}`:'ローカル';
  async function check(value){
   const headers={'X-TestJeff-Backend':'fds','X-TestJeff-Host':value.host,'X-TestJeff-Port':String(value.port),'X-TestJeff-Device':value.device,'X-TestJeff-Model':'qwen-2b'};
   const key=document.getElementById('key')?.value;if(key)headers.Authorization=`Bearer ${key}`;
-  const response=await originalFetch('/testjeff/fds-check',{headers});const result=await response.json();if(!response.ok||!result.ready)throw Error(result.detail||'FDSが準備できていません');return result;
+  const response=await originalFetch('/testjeff/fds-check',{headers});const result=await response.json();if(!response.ok||!result.health?.accepting)throw Error(result.detail||'FDSが準備できていません');window.TestJeffConnection.capabilities=result;window.dispatchEvent(new Event('fds-capabilities'));return result;
  }
+ function applyCapabilities(){
+  const data=window.TestJeffConnection.capabilities;if(!data)return;
+  let list=node('fds-models');if(!list){list=document.createElement('span');list.id='fds-models';panel.append(list);}
+  list.hidden=node('backend').value!=='fds';list.textContent=data.capabilities.map(m=>`${m.name}：${m.available?'利用可能':'計測不能'}`).join(' ／ ');
+  const choice=node('fds-device'),wanted=choice.value;choice.replaceChildren();
+  for(const device of data.devices){const option=document.createElement('option');option.value=device;option.textContent={auto:'自動',cpu:'サーバーCPU',cuda:'サーバーGPU'}[device]||device;choice.append(option);}
+  choice.value=data.devices.includes(wanted)?wanted:(data.devices[0]||'');
+  if(config.mode!=='fds')return;
+  for(const id of ['model-select','model']){const select=document.getElementById(id);if(!select||select.tagName!=='SELECT')continue;
+   const current=select.value,images=location.pathname==='/photos'||location.pathname==='/classification';
+   const candidates=data.capabilities.filter(m=>m.available&&m.local_id&&(!images||m.modalities.includes('image'))&&m.devices.includes(config.device));
+   select.replaceChildren();for(const m of candidates){const option=document.createElement('option');option.value=m.local_id;option.textContent=m.name;select.append(option);}
+   select.value=candidates.some(m=>m.local_id===current)?current:(candidates[0]?.local_id||'');
+   if(!candidates.length)select.disabled=true;
+  }
+ }
+ window.addEventListener('fds-capabilities',applyCapabilities);
  node('fds-check').onclick=async()=>{active++;lock();try{await check(draft());node('connection-status').textContent='接続確認済み';}catch(e){node('connection-status').textContent=e.message;}finally{active--;lock();}};
+ if(config.mode==='fds')node('fds-check').click();
  panel.onsubmit=async e=>{e.preventDefault();if(active||window.TestJeffBusy)return;const value=draft();active++;lock();try{if(value.mode==='fds')await check(value);localStorage.setItem(storage,JSON.stringify(value));location.reload();}catch(e){node('connection-status').textContent=e.message;}finally{active--;lock();}};
 });
 })();
