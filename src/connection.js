@@ -57,6 +57,13 @@ window.addEventListener('DOMContentLoaded',()=>{
  const panel=document.createElement('form');panel.id='connection-form';panel.setAttribute('aria-label','処理先の設定');
  panel.innerHTML='<label>処理先 <select id="backend"><option value="local">ローカル</option><option value="fds">サーバー（FDS）</option></select></label><label>IP <input id="fds-host" size="16" aria-label="FDSのIPアドレス"></label><label>ポート <input id="fds-port" type="number" min="1" max="65535" style="width:85px"></label><label>デバイス <select id="fds-device"><option value="auto">自動</option></select></label><span id="connection-status" role="status"></span>';
  const header=document.querySelector('main>header')||document.querySelector('body>header'),title=header?.querySelector('h1,.brand');
+ const navigation=header?.querySelector('nav');
+ if(navigation){
+  const actions=[...navigation.children].filter(child=>child.tagName!=='A');
+  const pages=[['/','トップページ'],['/query-comparison','問い合わせ速度比較'],['/battle','モデル対戦'],['/nouns','名詞判定'],['/photos','文字風景判定'],['/classification','画像分類']];
+  const links=pages.map(([href,label])=>{const link=document.createElement('a');link.href=href;link.textContent=label;if(location.pathname===href)link.setAttribute('aria-current','page');return link;});
+  navigation.setAttribute('aria-label','ページ移動');navigation.replaceChildren(...links,...actions);
+ }
  if(header&&title){header.classList.add('testjeff-page-header');const row=document.createElement('div');row.className='testjeff-title-row';const remaining=[...header.children].filter(child=>child!==title);header.prepend(row);row.append(title,panel,...remaining);}
  else (document.querySelector('main')||document.body).prepend(panel);
  new MutationObserver(()=>{const status=document.getElementById('connection-status');status.classList.toggle('connection-ok',['ローカル','接続済み'].includes(status.textContent));}).observe(document.getElementById('connection-status'),{childList:true});
