@@ -32,5 +32,6 @@
 | 二軸画像分類・SQLite画像履歴 | src/image_store.py、src/data/image_classification_definitions.json、tests/image_store_test.py、tests/image-history-browser.cjs、dev/history/v0.11.0/v0.11.0-imp.md |
 | FDS接続切替 | src/fds_client.py、src/connection.js、tests/fds_client_test.py、tests/fds-browser.cjs、dev/history/v0.12.0/v0.12.0-imp.md |
 | ローカルCPU/GPU・対戦入力保持 | src/connection.js、tests/local_device_test.py、tests/connection-local-browser.cjs、tests/local-device-live-browser.cjs、dev/history/v0.16.0/v0.16.0-imp.md |
+| 対戦保存・全候補コンボ・JSON再現情報 | src/battle_store.py、src/noun-combo.js、src/reproduction.py、tests/battle_store_test.py、tests/battle-history-browser.cjs、tests/reproduction_test.py、tests/battle-storage-live-browser.cjs、dev/history/v0.17.0/v0.17.0-imp.md |
 | 品質評価ナレッジ | src/knowledge.py、tests/knowledge_test.py、dev/history/v0.9.0/v0.9.0-imp.md |
 | 配布 | dev/RELEASE_RULE.md |

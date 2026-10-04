@@ -84,7 +84,7 @@ class FDS:
                 for q in request['questions'].values():
                     if isinstance(q.get('criteria'),dict):q['criteria']=dict(reversed(list(q['criteria'].items())))
                     elif isinstance(q.get('criteria'),list):q['criteria'].reverse()
-            submitted.append(safe_request(request))
+            submitted.append(safe_request(request, jev_defaults=False))
             result=self.call('/v1/decisions',request)
             if result.get('model')!=MODEL_IDS[selected] or not isinstance(result.get('answers'),dict):raise HTTPException(502,'FDSのモデルまたは応答が一致しません。')
             for key,answer in result['answers'].items():

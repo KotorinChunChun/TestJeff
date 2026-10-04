@@ -227,7 +227,7 @@ async function predict(model,request){
   if(typeof p!=='number'||!Number.isFinite(p)||p<0||p>1)throw Error('判定の応答が不正です。');
   return {probability:p,ms,execution:data.execution||null,reproduction:data.reproduction||null};
 }
-async function battle(){
+async function battle(inputMethod='manual'){
   if(busy)return;error();let requests;
   const target=$('target').value.trim(),candidates=rows.map(r=>r.input.value.trim());
   try{requests=candidates.map(word=>NounCore.makeRequest(target,word));}catch(e){error(e.message);return;}
@@ -236,9 +236,9 @@ async function battle(){
   const local=models.filter(m=>!m.cloud&&!m.inactive),offset=(stats?.runs||0)%(local.length||1),order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
   const connection=publicConnection(),selectedModels=models.filter(m=>!m.inactive);
   run={schema_version:2,selected_models:selectedModels.map(m=>m.id),columns:[...slots],batch:batchMode,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},partial_results:{},skipped:{},loads:{},memory:{},revisions:{},execution:{},warmup:{},status:'実行中'};
-  run.parameters={requests:clone(requests),warmup_per_model:1,warmup_candidate_index:0,positive_threshold:.5,columns:[...slots],selected_models:[...run.selected_models],order:[...run.order],batch:batchMode,statistics_key:storageKey,
+  run.parameters={requests:clone(requests),input_method:inputMethod==='random'?'random':'manual',sort_mode:$('sort').value,warmup_per_model:1,warmup_candidate_index:0,positive_threshold:.5,columns:[...slots],selected_models:[...run.selected_models],order:[...run.order],batch:batchMode,statistics_key:storageKey,
     timing:{unit:'ms',single:'API送信から応答受信まで',batch:'10件全体のAPI応答時間÷10',load:'モデル切り替えAPI送信から応答受信まで（速度集計から除外）',warmup:'各モデルの最初の1件（速度集計から除外）'},
-    client:{schema_version:2,language:navigator.language,user_agent:navigator.userAgent},model_requests:{}};
+    client:{schema_version:2,origin:location.origin,language:navigator.language,user_agent:navigator.userAgent},model_requests:{}};
   for(const m of selectedModels){const single=requests.map((request,i)=>m.cloud?{target,candidate:candidates[i]}:{...clone(request),model:m.api});run.parameters.model_requests[m.id]={model:m.api,single_path:m.cloud?'/testjeff/luna':'/v1/systemone',warmup:single[0],requests:batchMode?[{model:m.id,target,candidates:[...candidates]}]:single,path:batchMode?'/testjeff/battle-batch':m.cloud?'/testjeff/luna':'/v1/systemone'};}
   try{
     showBattleWait();render();
@@ -289,8 +289,8 @@ async function battle(){
     hideBattleWait();$('stop').classList.add('hidden');render();await saveRun(completedRecord);setBusy(false);render();
   }
 }
-$('start').onclick=battle;
-$('random').onclick=()=>{if(busy)return;const chosen=NounCore.draw(words,targets);$('target').value=chosen.target;createRows(chosen.candidates);battle();};
+$('start').onclick=()=>battle('manual');
+$('random').onclick=()=>{if(busy)return;const chosen=NounCore.draw(words,targets);$('target').value=chosen.target;createRows(chosen.candidates);battle('random');};
 $('target').oninput=inputChanged;
 $('stop').onclick=()=>{stop=true;$('stop').disabled=true;$('progress').textContent='処理中の1件が終了したら中止します';};
 $('reset').onclick=()=>{stats=null;save();render();};

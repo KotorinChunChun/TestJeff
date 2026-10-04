@@ -38,9 +38,10 @@ def image_reference(value):
             'mime':header.removeprefix('data:').removesuffix(';base64'), 'embedded':False}
 
 
-def safe_request(payload):
+def safe_request(payload, *, jev_defaults=True):
     data = payload.model_dump(mode='json', exclude_none=True) if hasattr(payload, 'model_dump') else copy.deepcopy(payload)
-    data.setdefault('orders', 1)
+    if jev_defaults:
+        data.setdefault('orders', 1)
     data['images'] = [image_reference(value) for value in data.get('images', [])]
     return data
 
