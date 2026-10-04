@@ -27,8 +27,18 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
     return route.fulfill({status:404});
   });
   await page.goto(base+'/battle');await page.locator('#start:not([disabled])').waitFor();
+  assert.equal(await page.locator('.toolbar').count(),1);
+  assert.equal(await page.locator('input[list]').count(),0);
+  const targetCount=JSON.parse(fs.readFileSync(path.join(root,'src/data/abstract-nouns.json'),'utf8')).length;
+  assert.equal(await page.locator('#target-options option').count(),targetCount+1);
+  assert.equal(await page.locator('select[aria-label="候補1の一覧"] option').count(),1001);
+  await page.locator('#target-options').selectOption('道具');assert.equal(await page.locator('#target').inputValue(),'道具');
+  await page.locator('select[aria-label="候補1の一覧"]').selectOption('猫');assert.equal(await page.locator('input[aria-label="候補1"]').inputValue(),'猫');
+  await page.locator('input[aria-label="候補1"]').fill('犬');
   const original=live?(await (await page.request.get(base+'/testjeff/status')).json()).selected:selected;
   await page.locator('#target').fill('持ち運べる物');
+  assert.equal(await page.locator('#target-options option').count(),targetCount+1);
+  assert.equal(await page.locator('select[aria-label="候補1の一覧"] option').count(),1001);
   const candidates=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));
   await page.locator('#start').click();
   await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了',null,{timeout:240000});
@@ -48,10 +58,13 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   if(!live){
     await page.locator('#sort').selectOption('name');
     const reviewed=page.locator('#rows tr').filter({has:page.locator('input[aria-label="候補1"]')});
-    await reviewed.locator('select').selectOption('です');await reviewed.locator('textarea').fill('日常の使い方で判断しました。');
+    await reviewed.locator('.review select').selectOption('です');await reviewed.locator('textarea').fill('日常の使い方で判断しました。');
+    const selectBox=await reviewed.locator('.review select').boundingBox(),commentBox=await reviewed.locator('textarea').boundingBox();
+    assert(Math.abs(selectBox.y-commentBox.y)<2);assert(selectBox.x+selectBox.width<=commentBox.x);
+    assert.equal(await reviewed.locator('.review').evaluate(node=>getComputedStyle(node).display),'table-cell');
     await page.locator('#save-knowledge').click();await page.getByText('保存済み',{exact:true}).waitFor();
     assert(await page.locator('#save-knowledge').isDisabled());
-    await reviewed.locator('select').selectOption('ではありません');
+    await reviewed.locator('.review select').selectOption('ではありません');
     await page.locator('#save-knowledge').click();await page.getByText('保存済み',{exact:true}).waitFor();
     const download=page.waitForEvent('download');await page.locator('#download-knowledge').click();
     const saved=JSON.parse(fs.readFileSync(await (await download).path(),'utf8'));
@@ -63,6 +76,9 @@ const root=path.join(__dirname,'..'),live=process.env.LIVE_URL,base=live||proces
   await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}.png`),fullPage:true});
   await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(root,`dev/testing/output/battle-${live?'live':'mock'}-mobile.png`),fullPage:true});
   await page.reload();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));
+  assert.equal(await page.locator('#target').inputValue(),'持ち運べる物');assert.deepEqual(await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value)),candidates);
+  const toolbar=await page.locator('.toolbar').evaluate(node=>({wrap:getComputedStyle(node).flexWrap,overflow:getComputedStyle(node).overflowX,children:[...node.children].map(n=>n.getBoundingClientRect().top+n.getBoundingClientRect().height/2)}));
+  assert.equal(toolbar.wrap,'nowrap');assert.equal(toolbar.overflow,'auto');assert(Math.max(...toolbar.children)-Math.min(...toolbar.children)<2);
   if(!live){
     const before=calls.length;await page.locator('#target').fill(' ');await page.locator('#start').click();assert.equal(calls.length,before);
     await page.locator('#target').fill('道具');mode='slow';await page.locator('#start').click();await page.locator('#stop').click();await page.locator('#start:not([disabled])').waitFor();assert((await page.locator('#progress').textContent()).includes('中止'));assert((await page.locator('#cumulative').textContent()).includes('累積 1回'));

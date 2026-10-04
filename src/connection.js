@@ -1,11 +1,11 @@
 /* 処理先変更を自動確認し、実行単位をページ再読込で分離する。 */
 (()=>{
 'use strict';
-const storage='testjeff-connection-v1';let config={mode:'local',host:'127.0.0.1',port:8767,device:'auto'};
+const storage='testjeff-connection-v1';let config={mode:'local',host:'127.0.0.1',port:8767,device:'auto',local_device:null};
 try{config={...config,...JSON.parse(localStorage.getItem(storage)||'{}')};}catch{}
 let selected='qwen-2b',active=0,checking=false,pending=false;
 const originalFetch=window.fetch.bind(window);
-window.TestJeffConnection={config,key:config.mode==='fds'?`fds:${config.host}:${config.port}:${config.device}`:'local'};
+window.TestJeffConnection={config,key:config.mode==='fds'?`fds:${config.host}:${config.port}:${config.device}`:config.local_device==='cpu'?'local:cpu':'local'};
 const inferencePaths=new Set(['/v1/systemone','/testjeff/photos','/testjeff/model','/testjeff/luna','/testjeff/battle-batch']);
 function lock(){const form=document.getElementById('connection-form');if(form)for(const node of form.querySelectorAll('input,select'))node.disabled=active>0||!!window.TestJeffBusy||checking;}
 function headersFor(value){return {'X-TestJeff-Backend':'fds','X-TestJeff-Host':value.host,'X-TestJeff-Port':String(value.port),'X-TestJeff-Device':value.device,'X-TestJeff-Model':selected};}
@@ -16,6 +16,10 @@ window.fetch=async(input,options={})=>{
  if(tracked&&(pending||checking))throw Error('接続設定の確認が終わってから再実行してください。');
  const headers=new Headers(options.headers||{});
  if(config.mode==='fds'&&(url.pathname.startsWith('/testjeff/')||url.pathname==='/v1/systemone'))for(const [k,v] of Object.entries(headersFor(config)))headers.set(k,v);
+ if(config.mode==='local'&&config.local_device){
+  headers.set('X-TestJeff-Local-Device',config.local_device);
+  if(url.pathname==='/testjeff/model'&&options.body){options={...options,body:JSON.stringify({...JSON.parse(options.body),device:config.local_device})};}
+ }
  if(tracked){active++;lock();}
  try{
   const response=await originalFetch(input,{...options,headers,signal:options.signal||AbortSignal.timeout(tracked?135000:15000)});
@@ -32,14 +36,19 @@ window.addEventListener('DOMContentLoaded',()=>{
  panel.innerHTML='<label>処理先 <select id="backend"><option value="local">ローカル</option><option value="fds">サーバー（FDS）</option></select></label><label>IP <input id="fds-host" size="16" aria-label="FDSのIPアドレス"></label><label>ポート <input id="fds-port" type="number" min="1" max="65535" style="width:85px"></label><label>デバイス <select id="fds-device"><option value="auto">自動</option></select></label><span id="connection-status" role="status"></span>';
  (document.querySelector('main')||document.body).prepend(panel);
  const node=id=>document.getElementById(id);node('backend').value=config.mode;node('fds-host').value=config.host;node('fds-port').value=config.port;
- const draft=()=>({mode:node('backend').value,host:node('fds-host').value.trim(),port:Number(node('fds-port').value),device:node('fds-device').value||config.device});
- function show(){for(const id of ['fds-host','fds-port','fds-device'])node(id).closest('label').hidden=node('backend').value!=='fds';}
+ const draft=()=>({mode:node('backend').value,host:node('fds-host').value.trim(),port:Number(node('fds-port').value),device:node('backend').value==='fds'?(node('fds-device').value||config.device):config.device,local_device:node('backend').value==='local'?(node('fds-device').value||config.local_device):config.local_device});
+ function show(){for(const id of ['fds-host','fds-port'])node(id).closest('label').hidden=node('backend').value!=='fds';}
+ function deviceOptions(devices,wanted,remote){
+  const choice=node('fds-device');choice.replaceChildren();
+  for(const device of devices){const option=document.createElement('option');option.value=device;option.textContent=device==='auto'?'自動':(remote?'サーバー':'')+(device==='cpu'?'CPU':'GPU');choice.append(option);}
+  choice.value=devices.includes(wanted)?wanted:(devices[0]||'');
+ }
  function applyCapabilities(){
+  if(config.mode==='local'){
+   const data=window.TestJeffConnection.localCapabilities;if(data)deviceOptions(data.devices||[],config.local_device,false);return;
+  }
   const data=window.TestJeffConnection.capabilities;if(!data)return;
-  const choice=node('fds-device'),wanted=config.device;choice.replaceChildren();
-  for(const device of data.devices||[]){const option=document.createElement('option');option.value=device;option.textContent={auto:'自動',cpu:'サーバーCPU',cuda:'サーバーGPU'}[device]||device;choice.append(option);}
-  choice.value=(data.devices||[]).includes(wanted)?wanted:(data.devices?.[0]||'');
-  if(config.mode!=='fds')return;
+  deviceOptions(data.devices||[],config.device,true);
   for(const id of ['model-select','model']){const select=node(id);if(!select||select.tagName!=='SELECT')continue;
    const current=select.value,images=location.pathname.startsWith('/photos')||location.pathname.startsWith('/classification');
    const candidates=data.capabilities.filter(m=>m.available&&m.local_id&&(!images||m.modalities.includes('image'))&&m.devices.includes(config.device));
@@ -52,7 +61,7 @@ window.addEventListener('DOMContentLoaded',()=>{
  let debounce;
  async function apply(initial=false){
   clearTimeout(debounce);if(active||window.TestJeffBusy){pending=false;node('connection-status').textContent='処理終了後に設定を変更してください。';return;}
-  const value=initial?{...config}:draft();checking=true;lock();show();node('connection-status').textContent='接続を確認中';
+  const value=initial?{...config}:draft();let modelReloaded=false;checking=true;lock();show();node('connection-status').textContent='接続を確認中';
   try{
    if(value.mode==='fds'){
     const headers=headersFor(value),key=node('key')?.value;if(key)headers.Authorization=`Bearer ${key}`;
@@ -61,18 +70,34 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!result.devices?.length)throw Error('サーバーに利用可能なデバイスがありません。');
     if(!result.devices.includes(value.device))value.device=result.devices[0];
     window.TestJeffConnection.capabilities=result;
+   }else{
+    const headers={},key=node('key')?.value;if(key)headers.Authorization=`Bearer ${key}`;
+    let response=await originalFetch('/testjeff/status',{headers,signal:AbortSignal.timeout(12000)}),state=await response.json();
+    if(!response.ok||!state.devices?.length)throw Error(typeof state.detail==='string'?state.detail:'ローカルの対応デバイスを確認できません。');
+    if(!state.devices.includes(value.local_device))value.local_device=state.devices.includes(state.device)?state.device:state.devices[0];
+    if(state.device!==value.local_device||!state.ready){
+     node('connection-status').textContent='ローカルモデルを切り替え中';
+     response=await originalFetch('/testjeff/model',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({model:state.selected||'qwen-2b',device:value.local_device}),signal:AbortSignal.timeout(135000)});state=await response.json();
+     if(!response.ok||!state.ready||state.device!==value.local_device)throw Error(typeof state.detail==='string'?state.detail:'ローカルモデルを切り替えられませんでした。');
+     modelReloaded=true;
+    }
+    selected=state.selected;window.TestJeffConnection.localCapabilities=state;
    }
    const changed=JSON.stringify(value)!==JSON.stringify(config);
-   if(changed){localStorage.setItem(storage,JSON.stringify(value));location.reload();return;}
+   if(changed||modelReloaded){localStorage.setItem(storage,JSON.stringify(value));location.reload();return;}
    pending=false;applyCapabilities();window.dispatchEvent(new Event('fds-capabilities'));node('connection-status').textContent=value.mode==='fds'?'接続済み':'ローカル';
   }catch(e){pending=!initial;node('connection-status').textContent='接続失敗：'+(e.name==='TimeoutError'?'応答がありません。':e.message);}
   finally{checking=false;lock();}
  }
  function schedule(immediate=false){pending=true;clearTimeout(debounce);node('connection-status').textContent='変更を確認中';if(immediate)void apply();else debounce=setTimeout(()=>apply(),650);}
- for(const id of ['backend','fds-device'])node(id).onchange=()=>{show();schedule(true);};
+ node('backend').onchange=()=>{
+  show();const remote=node('backend').value==='fds',data=remote?window.TestJeffConnection.capabilities:window.TestJeffConnection.localCapabilities;
+  deviceOptions(data?.devices||(remote?[config.device]:[]),remote?config.device:config.local_device,remote);schedule(true);
+ };
+ node('fds-device').onchange=()=>schedule(true);
  for(const id of ['fds-host','fds-port'])node(id).oninput=()=>schedule();
  panel.onsubmit=e=>{e.preventDefault();schedule(true);};
  show();node('connection-status').textContent=config.mode==='fds'?'接続を確認中':'ローカル';
- if(config.mode==='fds')void apply(true);
+ void apply(true);
 });
 })();

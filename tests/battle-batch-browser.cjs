@@ -11,17 +11,21 @@ if(url.pathname==='/v1/systemone'){single.push(r.postDataJSON());return route.fu
 if(url.pathname==='/testjeff/luna')return route.fulfill({json:{model:'gpt-5.6-luna',verdict:true}});
 return route.fulfill({status:404});});
 await page.goto('http://127.0.0.1:8767/battle');await page.locator('#start:not([disabled])').waitFor();
-await page.locator('#batch-mode').check();await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);
+await page.locator('#target').fill('持ち歩く物');await page.locator('input[aria-label="候補1"]').fill('買い物袋');
+const inputs=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));
+await page.locator('#batch-mode').click();assert.equal(await page.locator('#batch-mode').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#single-mode').getAttribute('aria-pressed'),'false');await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);
 assert.equal(batch.length,4);assert.equal(single.length,3);assert(batch.every(b=>b.candidates.length===10));assert.match(await page.locator('#summary').innerText(),/10件全体/);assert.match(await page.locator('#rows').innerText(),/平均換算/);
-await page.locator('#batch-mode').uncheck();assert.match(await page.locator('#cumulative').innerText(),/累積 0回/);
+await page.locator('#single-mode').click();assert.match(await page.locator('#cumulative').innerText(),/累積 0回/);assert.equal(await page.locator('#single-mode').getAttribute('aria-pressed'),'true');
 await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);assert.equal(single.length,36);assert.equal(batch.length,4);
-await page.locator('#batch-mode').check();assert.match(await page.locator('#cumulative').innerText(),/累積 1回/);
+await page.locator('#batch-mode').click();assert.match(await page.locator('#cumulative').innerText(),/累積 1回/);
 const selectors=page.locator('.battle-model');assert.equal(await selectors.count(),4);
 await selectors.nth(0).selectOption('qwen-2b');assert.equal(await selectors.nth(1).inputValue(),'qwen-0.8b');
 for(const i of [1,2,3])await selectors.nth(i).selectOption('');
+assert.equal(await page.locator('#target').inputValue(),'持ち歩く物');assert.deepEqual(await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value)),inputs);
 const before=batch.length;await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='10 / 10件完了');
 assert.equal(batch.length,before+1);assert.equal(batch.at(-1).model,'qwen-2b');assert.equal(await page.locator('.result').count(),10);assert.match(await page.locator('#agreement').textContent(),/—/);
 await page.reload();await page.locator('#start:not([disabled])').waitFor();assert.deepEqual(await selectors.evaluateAll(ns=>ns.map(n=>n.value)),['qwen-2b','','','']);assert.match(await page.locator('#cumulative').textContent(),/累積 1回/);
+assert.equal(await page.locator('#batch-mode').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#target').inputValue(),'持ち歩く物');assert.deepEqual(await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value)),inputs);
 await selectors.nth(0).selectOption('');await page.locator('#start').click();assert.equal(batch.length,before+1);assert.match(await page.locator('#error').textContent(),/モデルを選択/);
 console.log('一括・単件に加え、列入替・未選択の送信除外・1モデル比較・選択保存・全未選択を確認');
 

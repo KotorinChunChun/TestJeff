@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 let words = [], targets = [], running = false, controller = null, selectedModel = null, ready = false;
 const MODEL_NAMES = {'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b','gemma-e2b':'jeff-gemma-4-e2b-it'};
-const STORAGE_KEY = 'testjeff-nouns-stats-v1'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
+const STORAGE_KEY = 'testjeff-nouns-stats-v1'+(window.TestJeffConnection?.key&&window.TestJeffConnection.key!=='local'?':'+window.TestJeffConnection.key:'');
 let statistics = loadStatistics();
 const rows = [];
 

@@ -55,18 +55,27 @@ def free_port(port: int) -> None:
             raise RuntimeError(f'ポート{port}は使用中です。起動中のサーバーをCtrl+Cで停止するか--portを変更してください。')
 
 
+def local_devices(torch) -> list[str]:
+    return ['cpu', 'cuda'] if torch.cuda.is_available() else ['cpu']
+
+
+def protect_cuda(torch, name: str) -> None:
+    """起動時とCPUからの切替時に同じGPU空き容量・確保上限を適用する。"""
+    if not torch.cuda.is_available():
+        raise RuntimeError('このパソコンではCUDA GPUを利用できません。CPUを選んでください。')
+    free, _ = torch.cuda.mem_get_info()
+    needed = MODELS[name]['minimum_free_gib']
+    if free / 2**30 < needed:
+        raise RuntimeError(f'GPU空き容量{free / 2**30:.1f}GiB、必要目安{needed}GiB。小さいモデルかCPUを選んでください。')
+    torch.cuda.set_per_process_memory_fraction(0.85)
+
+
 def serve(name: str, port: int, device: str) -> None:
     free_port(port)
     folder = checkpoint(name)
     import torch
     if device == 'cuda':
-        if not torch.cuda.is_available():
-            raise RuntimeError('CUDAが利用できません。setup.ps1を実行してください。')
-        free, total = torch.cuda.mem_get_info()
-        needed = MODELS[name]['minimum_free_gib']
-        if free / 2**30 < needed:
-            raise RuntimeError(f'GPU空き容量{free / 2**30:.1f}GiB、必要目安{needed}GiB。小さいモデルを選ぶか--device cpuを指定してください。')
-        torch.cuda.set_per_process_memory_fraction(0.85)
+        protect_cuda(torch, name)
     os.environ.update(JEFF_CHECKPOINT=str(folder), JEFF_DEVICE=device, JEFF_BACKEND='pytorch')
     # 他用途のシェル設定に左右されず、単一のベースモデルを起動する。
     for key in ('JEFF_ADAPTERS', 'JEFF_ADAPTER_MODE', 'JEFF_LORA_PRECISION'):
@@ -75,6 +84,7 @@ def serve(name: str, port: int, device: str) -> None:
     from fastapi import Request, Depends, HTTPException
     from fastapi.responses import HTMLResponse, JSONResponse, Response
     from contextlib import asynccontextmanager
+    from contextvars import ContextVar
     from starlette.concurrency import run_in_threadpool
     import uvicorn
 
@@ -91,16 +101,30 @@ def serve(name: str, port: int, device: str) -> None:
 
     server.distributions = limited_distributions
 
-    def install_model(key):
+    requested_local_device = ContextVar('requested_local_device', default=None)
+    original_predict = server.predict
+
+    def checked_predict(model, body):
+        # 通信受信後に他画面が切り替えても、実際の推論ロック内で再検査する。
+        expected = requested_local_device.get()
+        if expected is not None and expected != device:
+            raise HTTPException(409, '処理デバイスが変更されました。CPU/GPUを選び直して再実行してください。')
+        if model is not server.service.model:
+            raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
+        return original_predict(model, body)
+
+    server.predict = checked_predict
+
+    def install_model(key, target_device):
         from datetime import datetime, timezone
         from jeff.models import load_decision_model
         folder = checkpoint(key)
         config_path = folder / 'decision_config.json'
         config = json.loads(config_path.read_text(encoding='utf-8'))
         limit = server.max_options(config, config_path)
-        if device == 'cuda':
+        if target_device == 'cuda':
             torch.cuda.reset_peak_memory_stats()
-        server.service.model = load_decision_model(checkpoint=str(folder), device=device)
+        server.service.model = load_decision_model(checkpoint=str(folder), device=target_device)
         server.service.name = f"jeff-{server.service.model.base_model.rsplit('/', 1)[-1].lower()}"
         server.service.checkpoint = str(folder)
         server.service.max_options = limit
@@ -110,7 +134,7 @@ def serve(name: str, port: int, device: str) -> None:
     async def local_lifespan(app):
         # 上流lifespanのローカル変数が初期モデルを保持し続けないよう、
         # 本件の単一ベースモデルはserviceだけに所有させる。
-        await run_in_threadpool(install_model, name)
+        await run_in_threadpool(install_model, name, device)
         try:
             yield
         finally:
@@ -321,6 +345,7 @@ def serve(name: str, port: int, device: str) -> None:
                 questions = data.get('questions', {})
                 if data.get('images') or (isinstance(questions, dict) and len(questions) > 4):
                     return JSONResponse({'detail': '本実験はテキストのみ・最大4質問です。'}, status_code=422)
+        device_token = None
         try:
             remote = FDS.from_request(request)
             if remote and request.url.path in ('/testjeff/status','/testjeff/model','/testjeff/resources','/v1/systemone','/testjeff/fds-check'):
@@ -337,6 +362,21 @@ def serve(name: str, port: int, device: str) -> None:
                 else:
                     result = await run_in_threadpool(remote.status,selected)
                 return JSONResponse(result)
+            if remote is None and request.method == 'POST' and request.url.path in ('/v1/systemone', '/testjeff/photos', '/testjeff/battle-batch'):
+                is_luna = False
+                if request.url.path == '/testjeff/battle-batch':
+                    try:
+                        batch_body = await request.json()
+                    except (ValueError, UnicodeDecodeError) as error:
+                        raise HTTPException(422, 'JSONが不正です。') from error
+                    is_luna = isinstance(batch_body, dict) and batch_body.get('model') == 'gpt-5.6-luna'
+                if not is_luna:
+                    expected = request.headers.get('x-testjeff-local-device')
+                    if expected is not None and expected not in ('cpu', 'cuda'):
+                        raise HTTPException(422, '処理デバイスにはcpuまたはcudaを指定してください。')
+                    if expected is not None and expected != device:
+                        raise HTTPException(409, '処理デバイスが変更されました。CPU/GPUを選び直して再実行してください。')
+                    device_token = requested_local_device.set(expected)
             return await call_next(request)
         except HTTPException as error:
             return JSONResponse({'detail':error.detail},status_code=error.status_code)
@@ -344,18 +384,27 @@ def serve(name: str, port: int, device: str) -> None:
             if device == 'cuda':
                 torch.cuda.empty_cache()
             return JSONResponse({'detail': 'GPUメモリ不足です。入力を短くするか小さいモデルへ切り替えてください。'}, status_code=503)
+        finally:
+            if device_token is not None:
+                requested_local_device.reset(device_token)
 
     @server.app.post('/testjeff/model', dependencies=[Depends(server.authenticate)])
     def switch_model(body: dict):
-        nonlocal name
+        nonlocal name, device
         import gc
         wanted = body.get('model')
-        if not isinstance(wanted, str) or wanted not in MODELS or set(body) != {'model'}:
+        wanted_device = body.get('device', device)
+        if not isinstance(wanted, str) or wanted not in MODELS or not set(body) <= {'model', 'device'}:
             raise HTTPException(422, '3種類のモデルから選んでください。')
+        if wanted_device not in ('cpu', 'cuda'):
+            raise HTTPException(422, '処理デバイスにはcpuまたはcudaを指定してください。')
+        if wanted_device not in local_devices(torch):
+            raise HTTPException(422, 'このパソコンではCUDA GPUを利用できません。CPUを選んでください。')
         if not server.service.lock.acquire(blocking=False):
             raise HTTPException(409, '評価またはモデル切り替えを実行中です。')
+        unloaded = False
         try:
-            if name == wanted and server.service.model is not None:
+            if name == wanted and device == wanted_device and server.service.model is not None:
                 return status()
             target_folder = checkpoint(wanted)
             config_path = target_folder / 'decision_config.json'
@@ -363,19 +412,23 @@ def serve(name: str, port: int, device: str) -> None:
             server.max_options(config, config_path)
             # 推論と同じロックで排他し、旧モデルを解放してから次を読み込む。
             server.service.model = None
+            unloaded = True
             gc.collect()
             if device == 'cuda':
                 torch.cuda.empty_cache()
-                free, _ = torch.cuda.mem_get_info()
-                if free / 2**30 < MODELS[wanted]['minimum_free_gib']:
-                    raise RuntimeError('GPU空き容量が不足しています。小さいモデルを選んでください。')
-            install_model(wanted)
-            name = wanted
+            if wanted_device == 'cuda':
+                protect_cuda(torch, wanted)
+            install_model(wanted, wanted_device)
+            name, device = wanted, wanted_device
+            os.environ.update(JEFF_CHECKPOINT=str(target_folder), JEFF_DEVICE=device)
             return status()
         except Exception as error:
-            if device == 'cuda':
+            if unloaded:
+                server.service.model = None
+                gc.collect()
+            if device == 'cuda' or wanted_device == 'cuda':
                 torch.cuda.empty_cache()
-            raise HTTPException(503, 'モデルを読み込めませんでした。小さいモデルを選んで再試行してください。') from error
+            raise HTTPException(503, f'モデルを読み込めませんでした（{wanted} / {wanted_device}）: {error}') from error
         finally:
             server.service.lock.release()
 
@@ -383,7 +436,7 @@ def serve(name: str, port: int, device: str) -> None:
     def status():
         return {'selected': name if server.service.model is not None else None,
                 'ready': server.service.model is not None, 'models': list(MODELS),
-                'device': device, 'revision': MODELS[name]['revision'],
+                'device': device, 'devices': local_devices(torch), 'revision': MODELS[name]['revision'],
                 'allocated_gib': torch.cuda.memory_allocated() / 2**30 if device == 'cuda' else None,
                 'peak_allocated_gib': torch.cuda.max_memory_allocated() / 2**30 if device == 'cuda' else None,
                 'reserved_gib': torch.cuda.memory_reserved() / 2**30 if device == 'cuda' else None}

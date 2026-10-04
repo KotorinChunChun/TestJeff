@@ -1,6 +1,7 @@
 'use strict';
-const $=id=>document.getElementById(id), allModels=BattleCore.models, storageBase='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
+const $=id=>document.getElementById(id), allModels=BattleCore.models, connectionKey=window.TestJeffConnection?.key,storageBase='testjeff-battle-v2'+(connectionKey&&connectionKey!=='local'?':'+connectionKey:'');
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
+const inputsKey='testjeff-battle-inputs-v1';
 let battleTimer=null;
 function showBattleWait(){
   hideBattleWait();const started=performance.now();
@@ -12,10 +13,12 @@ function hideBattleWait(){if(battleTimer!==null)clearInterval(battleTimer);battl
 const defaultSlots=allModels.map(m=>m.id);
 let slots=[...defaultSlots];try{const saved=JSON.parse(localStorage.getItem('testjeff-battle-slots'));if(Array.isArray(saved)&&saved.length===4&&saved.every(id=>id===''||defaultSlots.includes(id))&&new Set(saved.filter(Boolean)).size===saved.filter(Boolean).length)slots=saved;}catch{}
 let models=slots.map(id=>allModels.find(m=>m.id===id)||{id:'',name:'未選択',inactive:true});
-function statsKey(){return storageBase+($('batch-mode').checked?':batch':'')+(JSON.stringify(slots)===JSON.stringify(defaultSlots)?'':':columns:'+slots.join('|'));}
+function statsKey(){return storageBase+(batchMode?':batch':'')+(JSON.stringify(slots)===JSON.stringify(defaultSlots)?'':':columns:'+slots.join('|'));}
 
 const rows=[];
-$('batch-mode').checked=localStorage.getItem('testjeff-battle-batch')==='true';
+let batchMode=localStorage.getItem('testjeff-battle-batch')==='true';
+function renderQueryMode(){$('batch-mode').setAttribute('aria-pressed',String(batchMode));$('single-mode').setAttribute('aria-pressed',String(!batchMode));}
+renderQueryMode();
 let storageKey=statsKey();
 let pendingKnowledge=null,knowledgeSaved=false;
 function loadStats(){stats=null;try{
@@ -25,10 +28,12 @@ function loadStats(){stats=null;try{
   }))stats=saved;
 }catch{}}
 loadStats();
-$('batch-mode').onchange=()=>{localStorage.setItem('testjeff-battle-batch',String($('batch-mode').checked));storageKey=statsKey();loadStats();resetResults();};
+function selectQueryMode(value){if(busy||batchMode===value)return;batchMode=value;renderQueryMode();localStorage.setItem('testjeff-battle-batch',String(batchMode));storageKey=statsKey();loadStats();resetResults();}
+$('batch-mode').onclick=()=>selectQueryMode(true);
+$('single-mode').onclick=()=>selectQueryMode(false);
 function error(text=''){$('error').textContent=text;}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(stats));}catch{error('累積値を保存できませんでした。画面を閉じるまでは保持します。');}}
-function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key','batch-mode'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);renderSelectors();updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
+function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','target-options','random','start','reset','key','batch-mode','single-mode'])$(id).disabled=value;rows.forEach(r=>{r.input.disabled=value;r.choices.disabled=value;});renderSelectors();updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
 function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
 function renderSelectors(){
  document.querySelectorAll('.battle-model').forEach((select,i)=>{
@@ -48,9 +53,22 @@ function setupSelectors(){
 }
 window.addEventListener('fds-capabilities',renderSelectors);
 function resetResults(){run=null;clearReviews();render();}
+function persistInputs(){try{localStorage.setItem(inputsKey,JSON.stringify({target:$('target').value,candidates:rows.map(r=>r.input.value)}));}catch{}}
+function inputChanged(){persistInputs();resetResults();}
+function fillChoices(select,values){select.replaceChildren(element('option','一覧'));select.firstChild.value='';for(const word of values){const option=element('option',word);option.value=word;select.append(option);}}
 function createRows(values){
   rows.length=0;$('rows').replaceChildren();
-  values.forEach((word,i)=>{const tr=element('tr'),td=element('td'),input=element('input');input.value=word;input.maxLength=80;input.setAttribute('list','nouns');input.setAttribute('aria-label',`候補${i+1}`);input.oninput=resetResults;td.append(input);tr.append(td);const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});const review=element('td',undefined,'review'),expected=element('select'),comment=element('textarea');expected.setAttribute('aria-label',`ユーザー判定${i+1}`);for(const value of ['未評価','です','ではありません','判断困難']){const option=element('option',value);option.value=value;expected.append(option);}comment.maxLength=1000;comment.placeholder='理由・補足';comment.setAttribute('aria-label',`評価コメント${i+1}`);expected.onchange=reviewChanged;comment.oninput=reviewChanged;review.append(expected,comment);tr.append(review);rows.push({tr,input,cells,expected,comment,index:i});$('rows').append(tr);});resetResults();
+  values.forEach((word,i)=>{
+    const tr=element('tr'),td=element('td'),editor=element('div',undefined,'noun-editor candidate-editor'),input=element('input'),choices=element('select');
+    input.value=word;input.maxLength=80;input.setAttribute('aria-label',`候補${i+1}`);input.oninput=inputChanged;
+    choices.setAttribute('aria-label',`候補${i+1}の一覧`);fillChoices(choices,words);choices.onchange=()=>{if(choices.value){input.value=choices.value;choices.value='';inputChanged();}};
+    editor.append(input,choices);td.append(editor);tr.append(td);
+    const cells=models.map(()=>{const cell=element('td','未評価');tr.append(cell);return cell;});
+    const review=element('td',undefined,'review'),fields=element('div',undefined,'review-fields'),expected=element('select'),comment=element('textarea');
+    expected.setAttribute('aria-label',`ユーザー判定${i+1}`);for(const value of ['未評価','です','ではありません','判断困難']){const option=element('option',value);option.value=value;expected.append(option);}
+    comment.maxLength=1000;comment.rows=1;comment.placeholder='理由・補足';comment.setAttribute('aria-label',`評価コメント${i+1}`);expected.onchange=reviewChanged;comment.oninput=reviewChanged;
+    fields.append(expected,comment);review.append(fields);tr.append(review);rows.push({tr,input,choices,cells,expected,comment,index:i});$('rows').append(tr);
+  });persistInputs();resetResults();
 }
 function render(){
   const finished=run&&BattleCore.complete(run),comparison=finished?BattleCore.compare(run):null;
@@ -149,7 +167,7 @@ async function battle(){
   if(!models.some(m=>!m.inactive)){error('比較するモデルを選択してください。');return;}
   clearReviews();setBusy(true);stop=false;let original=null;
   const local=models.filter(m=>!m.cloud&&!m.inactive),offset=(stats?.runs||0)%(local.length||1),order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
-  run={selected_models:models.filter(m=>!m.inactive).map(m=>m.id),columns:[...slots],batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};
+  run={selected_models:models.filter(m=>!m.inactive).map(m=>m.id),columns:[...slots],batch:batchMode,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},skipped:{},loads:{},memory:{},revisions:{},status:'実行中'};
   try{
     showBattleWait();render();
     try{if(local.length)original=(await api('/testjeff/status')).selected;}catch(e){run.connection_error=e.message;}
@@ -194,13 +212,16 @@ async function battle(){
 }
 $('start').onclick=battle;
 $('random').onclick=()=>{if(busy)return;const chosen=NounCore.draw(words,targets);$('target').value=chosen.target;createRows(chosen.candidates);battle();};
-$('target').oninput=resetResults;
+$('target').oninput=inputChanged;
+$('target-options').onchange=()=>{if($('target-options').value){$('target').value=$('target-options').value;$('target-options').value='';inputChanged();}};
 $('stop').onclick=()=>{stop=true;$('stop').disabled=true;$('progress').textContent='処理中の1件が終了したら中止します';};
 $('reset').onclick=()=>{stats=null;save();render();};
 $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({run,statistics:stats},null,2)],{type:'application/json'}));const a=element('a');a.href=url;a.download='モデル対戦.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 (async()=>{try{
   words=(await api('/testjeff/nouns')).flatMap(g=>g.words);targets=await api('/testjeff/abstract-nouns');
-  for(const [id,values] of [['targets',targets],['nouns',words]])for(const word of values){const option=element('option');option.value=word;$(id).append(option);}
+  fillChoices($('target-options'),targets);
   const health=await api('/health');$('auth').classList.toggle('hidden',!health.authentication);
-  setupSelectors();createRows(['犬','猫','馬','象','イルカ','りんご','椅子','自転車','鉛筆','雨']);setBusy(false);$('progress').textContent='同じ10件で対戦';
+  let candidates=['犬','猫','馬','象','イルカ','りんご','椅子','自転車','鉛筆','雨'];
+  try{const saved=JSON.parse(localStorage.getItem(inputsKey));if(saved&&typeof saved.target==='string'&&saved.target.length<=80&&Array.isArray(saved.candidates)&&saved.candidates.length===10&&saved.candidates.every(v=>typeof v==='string'&&v.length<=80)){$('target').value=saved.target;candidates=saved.candidates;}}catch{}
+  setupSelectors();createRows(candidates);setBusy(false);$('progress').textContent='同じ10件で対戦';
 }catch(e){error(e.message);}})();
