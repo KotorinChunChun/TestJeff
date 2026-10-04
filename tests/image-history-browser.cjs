@@ -1,7 +1,7 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path');
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
 const page=await browser.newPage({viewport:{width:1400,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-for(const [route,title] of [['photos','Jev互換ローカル画像判定 — 文字風景判定'],['classification','画像分類']]){
+for(const [route,title] of [['photos','Jev互換ローカル画像判定 — 文字風景判定'],['classification','Jev互換ローカル画像判定 — 画像分類']]){
  await page.goto('http://127.0.0.1:8765/'+route);
  assert.equal(await page.locator('h1').textContent(),title);
  await page.waitForFunction(()=>document.getElementById('prompt-text').value.length>0);

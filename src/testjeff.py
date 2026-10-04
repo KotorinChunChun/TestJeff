@@ -239,7 +239,7 @@ def serve(name: str, port: int, device: str) -> None:
             return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/classification', '/classification/'):
             html = (ROOT / 'src/photos.html').read_text(encoding='utf-8')
-            html = html.replace('Jev互換ローカル画像判定 — 文字風景判定', '画像分類').replace('<body>', '<body class="classification">')
+            html = html.replace('Jev互換ローカル画像判定 — 文字風景判定', 'Jev互換ローカル画像判定 — 画像分類').replace('<body>', '<body class="classification">')
             html = html.replace('<th>文字情報</th><th>風景</th><th>看板面積（推定）</th>', '<th>大分類</th><th>小分類</th><th>定義版</th>')
             return HTMLResponse(html)
         if request.method == 'GET' and request.url.path in ('/photos', '/photos/'):
