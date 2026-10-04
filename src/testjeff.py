@@ -15,7 +15,7 @@ import urllib.request
 from feedback import Feedback, FeedbackStore
 from resources import ResourceMeter
 from luna import LunaInput, classify
-from photos import PhotoInput, PhotoPrompts, PhotoSamples, prepare_image, questions as photo_questions
+from photos import PhotoInput, PhotoPrompts, PhotoSamples, PhotoFailure, prepare_image, questions as photo_questions
 from knowledge import Evaluation, KnowledgeStore
 from image_store import ImageStore, classification_questions, classification_result
 
@@ -133,6 +133,12 @@ def serve(name: str, port: int, device: str) -> None:
     photo_samples = PhotoSamples(ROOT / 'dev/image', ROOT / 'dev/feedback/photo-samples')
     image_store = ImageStore(ROOT / 'dev/feedback/images.sqlite3')
 
+    @server.app.post('/testjeff/image-failure', dependencies=[Depends(server.authenticate)])
+    def image_failure(body: PhotoFailure):
+        result = {'error':body.error, 'model':body.model, 'image_type':None, 'primary_content':None,
+                  'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+        return {'record_id':image_store.save(body.mode, body.filename, None, result)}
+
     @server.app.get('/testjeff/image-history', dependencies=[Depends(server.authenticate)])
     def image_history(mode: str = 'photos', before: int = 0):
         if mode not in ('photos', 'classification') or before < 0:
@@ -165,13 +171,14 @@ def serve(name: str, port: int, device: str) -> None:
         try:
             if name != body.model or server.service.model is None:
                 raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
+            questions_used = classification_questions() if body.mode == 'classification' else photo_questions(body.prompts)
             request = server.EvaluationRequest(model=server.service.name, state='添付した1枚の画像を判定してください。',
-                                               images=[picture], questions=classification_questions() if body.mode == 'classification' else photo_questions(body.prompts))
+                                               images=[picture], questions=questions_used)
             started = time.perf_counter()
             result = server.predict(server.service.model, request)
             result = {**result, 'source_size':source_size, 'input_size':input_size,
                       'response_ms':(time.perf_counter() - started) * 1000,
-                      'prompts':body.prompts.model_dump(), 'revision':MODELS[body.model]['revision'],
+                      'prompts':body.prompts.model_dump() if body.mode == 'photos' else {key:value['instructions'] for key,value in questions_used.items()}, 'revision':MODELS[body.model]['revision'],
                       'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
             if body.mode == 'classification':
                 result.update(classification_result(result['answers']))
@@ -248,7 +255,7 @@ def serve(name: str, port: int, device: str) -> None:
                 if len(body) > 11_100_000:
                     return JSONResponse({'detail': '画像は8MB以内にしてください。'}, status_code=413)
             request._body = bytes(body)
-        if request.url.path == '/testjeff/knowledge' and request.method == 'POST':
+        if request.url.path in ('/testjeff/knowledge', '/testjeff/image-failure') and request.method == 'POST':
             body = bytearray()
             async for chunk in request.stream():
                 body.extend(chunk)

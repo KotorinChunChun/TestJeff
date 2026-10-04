@@ -55,11 +55,12 @@ class ImageStore:
             db.close()
 
     def save(self, mode, filename, picture, result):
-        raw = base64.b64decode(picture.split(',',1)[1])
-        with Image.open(io.BytesIO(raw)) as im:
-            im.thumbnail((240,240))
-            out = io.BytesIO()
-            im.convert('RGB').save(out, format='JPEG', quality=80)
+        raw = base64.b64decode(picture.split(',',1)[1]) if picture else b''
+        out = io.BytesIO()
+        if raw:
+            with Image.open(io.BytesIO(raw)) as im:
+                im.thumbnail((240,240))
+                im.convert('RGB').save(out, format='JPEG', quality=80)
         with self.connect() as db:
             cursor = db.execute('''INSERT INTO image_results
                 (mode,filename,sha256,created_at,model,image_type,primary_content,result_json,thumbnail)
@@ -73,4 +74,4 @@ class ImageStore:
             rows = db.execute('''SELECT id,filename,result_json,thumbnail FROM image_results
                 WHERE mode=? AND (?=0 OR id<?) ORDER BY id DESC LIMIT 50''',(mode,before,before)).fetchall()
         return [{'id':row[0], 'name':row[1], 'result':json.loads(row[2]),
-                 'image':'data:image/jpeg;base64,'+base64.b64encode(row[3]).decode()} for row in rows]
+                 'image':'data:image/jpeg;base64,'+base64.b64encode(row[3]).decode() if row[3] else None} for row in rows]

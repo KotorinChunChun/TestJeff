@@ -33,5 +33,9 @@ class StoreTest(unittest.TestCase):
             with store.connect() as db:
                 self.assertEqual(db.execute('select typeof(thumbnail) from image_results').fetchone()[0],'blob')
             self.assertEqual(store.history('classification',ident),[])
+            store.save('classification','破損.png',None,{'created_at':'2026-10-04','model':'test','error':'画像を読み込めません'})
+            failure=store.history('classification')[0]
+            self.assertIsNone(failure['image'])
+            self.assertIn('error',failure['result'])
 
 if __name__=='__main__':unittest.main()

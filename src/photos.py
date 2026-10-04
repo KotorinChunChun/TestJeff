@@ -33,6 +33,14 @@ class PhotoInput(BaseModel):
         return self
 
 
+class PhotoFailure(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    mode: Literal['photos', 'classification']
+    model: Literal['qwen-0.8b', 'qwen-2b']
+    filename: str = Field(max_length=1024)
+    error: str = Field(max_length=2000)
+
+
 def prepare_image(value):
     header, sep, encoded = value.partition(',')
     if not sep or header not in ('data:image/jpeg;base64', 'data:image/png;base64', 'data:image/webp;base64'):
