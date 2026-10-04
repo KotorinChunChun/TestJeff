@@ -9,6 +9,27 @@ function records(count=10){
  for(let offset=0;offset<count;offset+=8){const amount=Math.min(8,count-offset);batches.push({offset,count:amount,reproduction:{request:{state,orders:1,images:[],questions:Object.fromEntries(Array.from({length:amount},(_,index)=>['item_'+(offset+index),question(offset+index)]))}}});}
  result.batch.run.parameters.batch_execution={'qwen-2b':{batches}};return result;
 }
+function fdsRecords(count=10,orders=1){
+ const result=records(count);
+ const addSubmitted=reproduction=>{
+  const request=reproduction.request;request.orders=orders;
+  reproduction.submitted_requests=Array.from({length:orders},(_,turn)=>{
+   const questions=structuredClone(request.questions);
+   for(const question of Object.values(questions))if(orders===2){
+    question.type='choice';const choices=[['option_0',question.criteria.false],['option_1',question.criteria.true]];
+    question.criteria=Object.fromEntries(turn?choices.reverse():choices);
+   }
+   return {model:'jeff-qwen3.5-2b',device:'cpu',state:request.state,questions,images:request.images??[],timeout_seconds:120,priority:'normal',auto_unload:true};
+  });
+ };
+ for(const mode of ['single','batch']){
+  result[mode].connection={mode:'fds',host:'127.0.0.1',port:8767,device:'cpu',key:'fds:cpu'};
+  result[mode].run.execution['qwen-2b'].backend='fds';
+ }
+ for(const item of result.single.run.results['qwen-2b'])addSubmitted(item.reproduction);
+ for(const batch of result.batch.run.parameters.batch_execution['qwen-2b'].batches)addSubmitted(batch.reproduction);
+ return result;
+}
 for(const count of [1,10,30,100]){const value=core.metrics(records(count))['qwen-2b'];assert.equal(value.reduction_percent,50);assert.equal(value.speedup,2);}
 let pair=records();pair.batch.run.query_totals['qwen-2b'].complete=false;assert.equal(core.metrics(pair)['qwen-2b'].comparable,false);
 pair=records();pair.batch.run.candidates[0]='別入力';assert.equal(core.metrics(pair)['qwen-2b'].comparable,false);
@@ -71,6 +92,42 @@ pair=records();for(const item of pair.single.run.results['qwen-2b'])delete item.
 delete pair.batch.run.parameters.batch_execution;
 assert.equal(prompt(pair),'unknown','noun-v2マーカーだけの旧記録を一致扱いにしない');
 assert.equal(core.metrics(pair)['qwen-2b'].reduction_percent,null);
+const firstSubmitted=pair=>pair.batch.run.parameters.batch_execution['qwen-2b'].batches[0].reproduction.submitted_requests;
+for(const orders of [1,2]){
+ pair=fdsRecords(10,orders);assert.equal(prompt(pair),'verified',`FDS転送${orders}回の実質問が候補ごとに一致`);
+ assert.equal(core.metrics(pair)['qwen-2b'].comparable,true);assert.equal(core.metrics(pair)['qwen-2b'].speedup,2);
+ assert.equal(firstSubmitted(pair).length,orders);assert.equal(Object.hasOwn(firstSubmitted(pair)[0],'orders'),false,'転送側のorders省略を元のordersとは混同しない');
+}
+for(const [label,orders,change]of[
+ ['転送stateのみ不一致',1,requests=>{requests[0].state='転送時だけ異なる状態';}],
+ ['転送instructionsのみ不一致',1,requests=>{requests[0].questions.item_0.instructions='転送時だけ異なる質問';}],
+ ['転送criteriaのみ不一致',1,requests=>{requests[0].questions.item_0.criteria.true='転送時だけ異なる意味';}],
+ ['転送画像のみ不一致',1,requests=>{requests[0].images=[{sha256:'別の画像'}];}],
+ ['転送モデルのみ不一致',1,requests=>{requests[0].model='別のモデル';}],
+ ['転送deviceのみ不一致',1,requests=>{requests[0].device='cuda:0';}],
+ ['2回目の転送文面不一致',2,requests=>{requests[1].questions.item_0.instructions='2回目だけ異なる質問';}],
+ ['2回目のchoice順不一致',2,requests=>{requests[1].questions.item_0.criteria=Object.fromEntries(Object.entries(requests[1].questions.item_0.criteria).reverse());}]
+]){
+ pair=fdsRecords(10,orders);change(firstSubmitted(pair));const metric=core.metrics(pair)['qwen-2b'];
+ assert.equal(metric.prompt_condition,'different',label);assert.equal(metric.comparable,false,label);assert.equal(metric.speedup,null,label);
+ assert.equal(metric.single_total_ms,100);assert.equal(metric.batch_total_ms,50);
+}
+for(const [label,orders,change]of[
+ ['単件の転送証跡なし',1,value=>{delete value.single.run.results['qwen-2b'][0].reproduction.submitted_requests;}],
+ ['一括の転送証跡なし',1,value=>{delete value.batch.run.parameters.batch_execution['qwen-2b'].batches[0].reproduction.submitted_requests;}],
+ ['後続chunkの転送証跡なし',1,value=>{delete value.batch.run.parameters.batch_execution['qwen-2b'].batches[1].reproduction.submitted_requests;}],
+ ['転送ターン過剰',1,value=>{firstSubmitted(value).push(firstSubmitted(value)[0]);}],
+ ['転送質問数不足',1,value=>{delete firstSubmitted(value)[0].questions.item_0;}],
+ ['転送質問数過剰',1,value=>{firstSubmitted(value)[0].questions.extra=firstSubmitted(value)[0].questions.item_0;}],
+ ['単件転送質問数過剰',1,value=>{const request=value.single.run.results['qwen-2b'][0].reproduction.submitted_requests[0];request.questions.extra=request.questions.判定;}],
+ ['2回目の転送証跡なし',2,value=>{firstSubmitted(value).pop();}],
+ ['単件2回目の転送証跡なし',2,value=>{value.single.run.results['qwen-2b'][0].reproduction.submitted_requests.pop();}],
+ ['2回目の質問数不足',2,value=>{delete firstSubmitted(value)[1].questions.item_0;}]
+]){
+ pair=fdsRecords(10,orders);change(pair);const metric=core.metrics(pair)['qwen-2b'];
+ assert.equal(metric.prompt_condition,'unknown',label);assert.equal(metric.comparable,false,label);assert.equal(metric.reduction_percent,null,label);
+ assert.equal(metric.single_total_ms,100);assert.equal(metric.batch_total_ms,50);
+}
 pair=records();for(const mode of ['single','batch']){
  const run=pair[mode].run;run.selected_models=['gpt-5.6-luna'];
  run.results={'gpt-5.6-luna':run.results['qwen-2b'].map(item=>({ms:item.ms,verdict:true}))};
@@ -79,4 +136,4 @@ pair=records();for(const mode of ['single','batch']){
 assert.equal(core.metrics(pair)['gpt-5.6-luna'].prompt_condition,'not_applicable');
 assert.equal(core.metrics(pair)['gpt-5.6-luna'].comparable,true,'Lunaは公開実行条件の検査を維持');
 pair.batch.run.execution['gpt-5.6-luna'].reasoning='high';assert.equal(core.metrics(pair)['gpt-5.6-luna'].comparable,false);
-console.log('問い合わせ速度比較: 件数・実質問の一致/差異/証跡不足・合計保持・実行条件・未完了・Luna公開設定を確認');
+console.log('問い合わせ速度比較: 件数・実質問とFDS各転送の一致/差異/証跡不足・合計保持・実行条件・未完了・Luna公開設定を確認');

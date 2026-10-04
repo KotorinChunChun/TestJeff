@@ -125,7 +125,8 @@ def serve(name: str, port: int, device: str) -> None:
                      'model':server.service.name, 'model_id':name, 'revision':MODELS[name]['revision'],
                      'precision':precision, 'inference_ms':elapsed, 'internal_batch_size':1,
                      'gpu_memory_fraction':0.85 if device == 'cuda' else None}
-        execution['input_tokens'] = result.get('usage', {}).get('input_tokens')
+        usage = result.get('usage')
+        execution['input_tokens'] = usage.get('input_tokens') if isinstance(usage, dict) else None
         gpu_name = torch.cuda.get_device_name() if device == 'cuda' else None
         if isinstance(gpu_name, str):
             execution['gpu_name'] = gpu_name

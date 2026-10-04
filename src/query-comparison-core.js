@@ -50,6 +50,34 @@
     }
     return rows;
   }
+  function submittedRows(reproduction,count){
+    const original=reproduction?.request,orders=Object.hasOwn(original||{},'orders')?original.orders:1,submitted=reproduction?.submitted_requests;
+    // FDSはorders回を別要求として転送する。転送要求自身のorders省略とは区別する。
+    if(![1,2].includes(orders)||!Array.isArray(submitted)||submitted.length!==orders)return null;
+    const candidates=Array.from({length:count},()=>[]);
+    for(const request of submitted){
+      const rows=promptRows(request);if(!rows||rows.length!==count)return null;
+      rows.forEach((row,index)=>candidates[index].push({prompt:row,model:request.model,device:request.device}));
+    }
+    return candidates;
+  }
+  function submittedCondition(singles,batches){
+    const individual=[],grouped=[];
+    for(const item of singles){const rows=submittedRows(item.reproduction,1);if(!rows)return 'unknown';individual.push(rows[0]);}
+    for(const batch of batches){
+      const count=Object.keys(batch.reproduction.request.questions).length,rows=submittedRows(batch.reproduction,count);
+      if(!rows)return 'unknown';grouped.push(...rows);
+    }
+    if(grouped.length!==individual.length)return 'unknown';
+    for(let index=0;index<individual.length;index++){
+      const left=individual[index],right=grouped[index];if(left.length!==right.length)return 'unknown';
+      for(let turn=0;turn<left.length;turn++){
+        if(left[turn].prompt!==right[turn].prompt)return 'different';
+        if(['model','device'].some(key=>left[turn][key]!=null&&right[turn][key]!=null&&left[turn][key]!==right[turn][key]))return 'different';
+      }
+    }
+    return 'verified';
+  }
   function promptCondition(singleRun,batchRun,id){
     if(id==='gpt-5.6-luna')return 'not_applicable';
     const count=singleRun?.candidates?.length,singles=singleRun?.results?.[id],batches=batchRun?.parameters?.batch_execution?.[id]?.batches;
@@ -62,7 +90,8 @@
       grouped.push(...rows);
     }
     if(grouped.length!==count)return 'unknown';
-    return individual.every((row,index)=>row===grouped[index])?'verified':'different';
+    if(!individual.every((row,index)=>row===grouped[index]))return 'different';
+    return [singleRun,batchRun].some(run=>run.execution?.[id]?.backend==='fds')?submittedCondition(singles,batches):'verified';
   }
   function metrics(records){
     const single=records.single?.run,batch=records.batch?.run,ids=single?.selected_models||batch?.selected_models||[];

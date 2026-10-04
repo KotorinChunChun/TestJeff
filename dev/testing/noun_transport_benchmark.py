@@ -50,7 +50,8 @@ def main():
     report = {'phase': args.phase, 'at': datetime.datetime.now().astimezone().isoformat(),
               'boundary': 'Pythonクライアント→TestJeff→FDS、応答JSON読込まで。予備判定と記録処理を除外。',
               'target': TARGET, 'candidates': WORDS, 'health_before': health, 'samples': []}
-    output = ROOT / f'dev/testing/output/v0203-transport-{args.phase}.json'
+    stamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
+    output = ROOT / f'dev/testing/output/v0203-transport-{args.phase}-{stamp}.json'
     output.parent.mkdir(parents=True, exist_ok=True)
 
     def save():
@@ -61,6 +62,9 @@ def main():
             requests = [make_request(TARGET, word, API_IDS[model]) for word in WORDS]
             for mode in (['single', 'batch'] if repeat % 2 == 0 else ['batch', 'single']):
                 warmup = call('/v1/systemone', requests[0])
+                version = warmup.get('reproduction', {}).get('application', {}).get('version')
+                if args.phase == 'before' and version != '0.20.2':
+                    raise RuntimeError('beforeは旧版v0.20.2サーバー専用です。新版で旧測定を上書きしないでください。')
                 responses = []
                 started = time.perf_counter()
                 if mode == 'single':
@@ -73,6 +77,8 @@ def main():
                     executions = [r['execution'] for r in responses]
                     probabilities = [r['answers']['判定']['noul'] for r in responses]
                 else:
+                    if args.phase == 'after' and responses[0].get('reproduction', {}).get('noun_protocol') != 'noun-v2':
+                        raise RuntimeError('afterはnoun-v2の一括APIが必要です。TestJeffを再起動してください。')
                     executions = [b['reproduction']['execution'] for b in responses[0]['reproduction']['batches']]
                     probabilities = [r['probability'] for r in responses[0]['results']]
                 assert len(probabilities) == len(WORDS)
@@ -102,6 +108,7 @@ def main():
                             next(r['probabilities'] for r in report['samples'] if r['model'] == model and r['mode'] == 'batch' and r['repeat'] == repeat)))
         report['summary'][model] = summary
     save()
+    print(str(output), flush=True)
     print(json.dumps(report['summary'], ensure_ascii=False), flush=True)
 
 

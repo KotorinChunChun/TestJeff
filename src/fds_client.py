@@ -151,7 +151,7 @@ class FDS:
                              'revision':result.get('revision'),'request_ids':[r.get('request_id') for r in results],
                              'management_steps':[safe_metadata(r.get('management')) for r in results],
                              **{k:sum(r.get(k,0) for r in results) for k in ('queue_ms','load_ms','inference_ms','total_ms')}}
-        input_tokens = [r.get('usage', {}).get('input_tokens') for r in results]
+        input_tokens = [r['usage'].get('input_tokens') if isinstance(r.get('usage'), dict) else None for r in results]
         result['execution']['input_tokens'] = (sum(input_tokens) if all(type(n) is int and n >= 0 for n in input_tokens) else None)
         result['model']=API_IDS[selected]
         result['reproduction']=reproduction(payload,result['execution'])

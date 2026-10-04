@@ -7,12 +7,13 @@ const apiIds=Object.fromEntries(require('../src/battle-core.js').models.map(mode
 const autosaveApi=require('../src/query-autosave.js');
 const {makeRequest}=require('../src/nouns-core.js');
 const comparisonCore=require('../src/query-comparison-core.js');
+function submittedRequests(payload){const {orders,...request}=payload;return [{...request,images:request.images||[],device:'cpu'}];}
 function batchReproduction(body,execution){
  const batches=[];
  for(let offset=0;offset<body.candidates.length;offset+=8){
   const requests=body.candidates.slice(offset,offset+8).map(candidate=>makeRequest(body.target,candidate));
   const payload={model:apiIds[body.model],state:requests[0].state,questions:Object.fromEntries(requests.map((request,index)=>['item_'+(offset+index),request.questions.判定])),orders:1,images:[]};
-  batches.push({offset,count:requests.length,reproduction:{schema_version:1,request:payload,execution}});
+  batches.push({offset,count:requests.length,reproduction:{schema_version:1,request:payload,submitted_requests:submittedRequests(payload),execution}});
  }
  return {schema_version:1,request:body,batches};
 }
@@ -78,7 +79,7 @@ async function scenario({page,batch=false,reverse=false,failFirst=false,cancel=f
     const id=url.pathname==='/v1/systemone'?ids.find(id=>apiIds[id]===body.model):body.model;
     assert.equal(loading,false,'準備応答前に推論を送らない');assert.equal(id,loaded,'実際に準備が完了したモデルだけを推論する');
     events.push([url.pathname==='/v1/systemone'?'single':'batch',id]);
-    if(url.pathname==='/v1/systemone')return response({model:apiIds[id],answers:{判定:{noul:.8}},execution:execution(id),reproduction:{schema_version:1,request:{orders:1,images:[],...body},execution:execution(id)}});
+    if(url.pathname==='/v1/systemone')return response({model:apiIds[id],answers:{判定:{noul:.8}},execution:execution(id),reproduction:{schema_version:1,request:{orders:1,images:[],...body},submitted_requests:submittedRequests(body),execution:execution(id)}});
     assert.equal(body.candidates.length,count);return response({results:body.candidates.map(()=>({probability:.8,execution:execution(id)})),reproduction:batchReproduction(body,execution(id))});
    }
    case '/testjeff/battle-runs':

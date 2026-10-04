@@ -37,3 +37,13 @@ v0.3.0以降のブラウザーテストは計50件（0.8Bの手動10件＋ラン
 対戦と品質評価のPOST上限は8MiB。100件の完全な再現情報を保持するための拡張であり、画像や秘密値は追加しない。ブラウザーの非Luna一括期限は `15000 + ceil(件数 / 8) * 120000` ms、Lunaと単件は135000ms。期限は `TestJeffConnection.timeoutMs(path, payload)` で共通化しJSONにも保存する。
 
 単体検証は `.venv/Scripts/python.exe -m unittest discover -s tests -p '*_test.py'` と `npm test`。模擬APIのブラウザー検証は `node tests/battle-count-browser.cjs` と `node tests/query-comparison-browser.cjs`。実APIの検証用に `tests/query-count-live-browser.cjs` と `tests/query-comparison-live-browser.cjs` を用意した。後者2本は専用DBを設定したポート8766のCPU試験サーバーが必要で、本番DBでは実行しない。比較試験のFDSは8767のQwen 2Bを使い、Lunaの実問い合わせは行わない。
+
+## 個別・一括の同一入力比較（v0.20.3）
+
+`noun-v2` は共通state「名詞の一般的な意味に基づいて判定してください。」と「B」は「A」ですか？という質問、Aを含む同一の真偽基準を使う。JavaScriptのnouns-core.jsとPythonのnoun_requests.pyを契約試験で照合する。名詞判定とモデル対戦も同じ生成処理を使う。
+
+速度比較では実際のreproductionから候補別のstate・質問・選択肢・orders・画像を照合する。質問IDだけの違いは許可し、文面差や証跡不足は短縮率・倍率を計算しない。旧結果の合計時間と記録は残す。Lunaは生成形式の違いを含む方式比較のままで、Jeffの同一入力検査とは区別する。
+
+FDSへの10件の通信は個別10回、一括2回（8件＋2件）。両方式ともモデル内部は1件ずつ計算する。通信回数だけで全体が5倍速くなるわけではない。モデル入力トークン数をexecutionに保存し、未提供時はnullとする。
+
+常駐CPU3モデルでの再測定は `.venv/Scripts/python.exe dev/testing/noun_transport_benchmark.py --phase after`。TestJeffは8765、FDSは8767。CPUモデルがすべて常駐し、他の要求がないことを先に確認する。モデルのロード・解放要求はせず、解放しない設定で同じ10候補を各3回、方式の先後を交替して測る。予備判定・記録処理は計測外。生JSONはdev/testing/outputの日時別ファイルへ保存する。`--phase before` は旧版v0.20.2サーバー専用であり、新版では実行を拒否する。

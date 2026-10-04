@@ -22,6 +22,14 @@ class FDSTest(unittest.TestCase):
         self.assertEqual(result['execution']['input_tokens'],247)
         self.assertEqual(result['reproduction']['execution']['input_tokens'],247)
 
+    def test_unavailable_usage_does_not_discard_successful_answers(self):
+        for usage in (None, 'unknown', {}, {'input_tokens': True}, {'input_tokens': -1}):
+            client=FDS('127.0.0.1',8767)
+            client.call=Mock(return_value={'model':'jeff-qwen-2b','answers':{'質問':{'type':'noul','noul':.8}},'usage':usage})
+            result=client.predict({'state':'猫','questions':{'質問':{'type':'noul','instructions':'動物か'}}},'qwen-2b')
+            self.assertEqual(result['answers']['質問']['noul'],.8)
+            self.assertIsNone(result['execution']['input_tokens'])
+
     def test_target(self):
         for host,port in [('http://127.0.0.1',8767),('0.0.0.0',8767),('127.0.0.1',0),('224.0.0.1',80)]:
             with self.assertRaises(HTTPException):FDS(host,port)
