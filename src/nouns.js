@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 let words = [], targets = [], running = false, controller = null, selectedModel = null, ready = false;
 const MODEL_NAMES = {'qwen-0.8b':'jeff-qwen3.5-0.8b','qwen-2b':'jeff-qwen3.5-2b','gemma-e2b':'jeff-gemma-4-e2b-it'};
-const STORAGE_KEY = 'testjeff-nouns-stats-v1';
+const STORAGE_KEY = 'testjeff-nouns-stats-v1'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
 let statistics = loadStatistics();
 const rows = [];
 
@@ -63,7 +63,7 @@ function clearResults() {
   }
   $('progress').textContent = '10件';
 }
-function setBusy(value) {
+function setBusy(value) {window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));
   running = value;
   for (const id of ['random', 'evaluate', 'target']) $(id).disabled = value || !ready;
   for (const id of ['model-select', 'key', 'reset', 'sort-order']) $(id).disabled = value;
@@ -173,7 +173,7 @@ async function evaluate(accumulate = false) {
         row.answer.className = probability >= .5 ? 'answer yes' : 'answer no';
         row.elapsed = elapsed;
         row.result = {result_id:crypto.randomUUID(), run_id:runId, target:runTarget, candidate:request.state.対象,
-          model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
+          execution:data.execution||null, model:runModel, probability, response_ms:elapsed, evaluated_at:new Date().toISOString()};
         row.timing.textContent = `${elapsed.toFixed(1)} ms`; timings.push(elapsed); probabilities.push(probability);
         completed++;
       } catch (error) {

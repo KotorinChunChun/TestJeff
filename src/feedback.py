@@ -21,6 +21,7 @@ class Feedback(BaseModel):
     probability: float = Field(ge=0, le=1)
     response_ms: float = Field(ge=0)
     evaluated_at: AwareDatetime
+    execution: dict | None = None
     rating: Literal['良かった', '悪かった']
 
 

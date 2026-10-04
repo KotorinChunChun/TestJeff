@@ -18,6 +18,7 @@ from resources import ResourceMeter
 from luna import LunaInput, classify
 from photos import PhotoInput, PhotoPrompts, PhotoSamples, PhotoFailure, prepare_image, questions as photo_questions
 from knowledge import Evaluation, KnowledgeStore
+from fds_client import FDS, API_IDS
 from image_store import ImageStore, classification_questions, classification_result
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,7 +160,8 @@ def serve(name: str, port: int, device: str) -> None:
             raise HTTPException(404, str(error)) from error
 
     @server.app.post('/testjeff/photos', dependencies=[Depends(server.authenticate)])
-    def photos(body: PhotoInput):
+    def photos(body: PhotoInput, http_request: Request):
+        remote = FDS.from_request(http_request)
         try:
             source = body.image
             if body.sample_id:
@@ -170,16 +172,16 @@ def serve(name: str, port: int, device: str) -> None:
         if not server.service.lock.acquire(blocking=False):
             raise HTTPException(409, '別の判定を実行中です。終了後に再実行してください。')
         try:
-            if name != body.model or server.service.model is None:
+            if remote is None and (name != body.model or server.service.model is None):
                 raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
             questions_used = classification_questions() if body.mode == 'classification' else photo_questions(body.prompts)
             request = server.EvaluationRequest(model=server.service.name, state='添付した1枚の画像を判定してください。',
                                                images=[picture], questions=questions_used)
             started = time.perf_counter()
-            result = server.predict(server.service.model, request)
+            result = remote.predict({'state':'添付した1枚の画像を判定してください。','images':[picture],'questions':questions_used},body.model) if remote else server.predict(server.service.model, request)
             result = {**result, 'source_size':source_size, 'input_size':input_size, 'file_size_bytes':len(base64.b64decode(source.split(',',1)[1])),
-                      'response_ms':(time.perf_counter() - started) * 1000,
-                      'prompts':body.prompts.model_dump() if body.mode == 'photos' else {key:value['instructions'] for key,value in questions_used.items()}, 'revision':MODELS[body.model]['revision'],
+                      'response_ms':result.get('execution',{}).get('inference_ms',(time.perf_counter() - started) * 1000),
+                      'prompts':body.prompts.model_dump() if body.mode == 'photos' else {key:value['instructions'] for key,value in questions_used.items()}, 'revision':result.get('revision',MODELS[body.model]['revision']),
                       'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
             if body.mode == 'classification':
                 result.update(classification_result(result['answers']))
@@ -227,28 +229,31 @@ def serve(name: str, port: int, device: str) -> None:
     def download_feedback():
         return JSONResponse(feedback_store.records(), headers={'Content-Disposition': 'attachment; filename="feedback.json"'})
 
+    def page_html(html):
+        return HTMLResponse(html.replace('<head>', '<head><script src="/assets/connection.js"></script>', 1))
+
     @server.app.middleware('http')
     async def bound_request(request: Request, call_next):
         if request.method == 'GET' and request.url.path == '/':
-            return HTMLResponse((ROOT / 'src/playground.html').read_text(encoding='utf-8'))
+            return page_html((ROOT / 'src/playground.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/examples':
             return JSONResponse(json.loads((ROOT / 'tests/requests.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path in ('/nouns', '/nouns/'):
-            return HTMLResponse((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
+            return page_html((ROOT / 'src/nouns.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/battle', '/battle/'):
-            return HTMLResponse((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
+            return page_html((ROOT / 'src/battle.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path in ('/classification', '/classification/'):
             html = (ROOT / 'src/photos.html').read_text(encoding='utf-8')
             html = html.replace('Jev互換ローカル画像判定 — 文字風景判定', 'Jev互換ローカル画像判定 — 画像分類').replace('<body>', '<body class="classification">')
             html = html.replace('<th>文字情報</th><th>風景</th><th>看板面積（推定）</th>', '<th>大分類</th><th>小分類</th><th>定義版</th>')
-            return HTMLResponse(html)
+            return page_html(html)
         if request.method == 'GET' and request.url.path in ('/photos', '/photos/'):
-            return HTMLResponse((ROOT / 'src/photos.html').read_text(encoding='utf-8'))
+            return page_html((ROOT / 'src/photos.html').read_text(encoding='utf-8'))
         if request.method == 'GET' and request.url.path == '/testjeff/nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/nouns.json').read_text(encoding='utf-8')))
         if request.method == 'GET' and request.url.path == '/testjeff/abstract-nouns':
             return JSONResponse(json.loads((ROOT / 'src/data/abstract-nouns.json').read_text(encoding='utf-8')))
-        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js', '/assets/photos.js'):
+        if request.method == 'GET' and request.url.path in ('/assets/nouns-core.js', '/assets/nouns.js', '/assets/battle.js', '/assets/battle-core.js', '/assets/photos.js', '/assets/connection.js'):
             return Response((ROOT / 'src' / request.url.path.rsplit('/', 1)[-1]).read_text(encoding='utf-8'),
                             media_type='text/javascript')
         if request.url.path == '/testjeff/photos' and request.method == 'POST':
@@ -282,7 +287,24 @@ def serve(name: str, port: int, device: str) -> None:
                 if data.get('images') or (isinstance(questions, dict) and len(questions) > 4):
                     return JSONResponse({'detail': '本実験はテキストのみ・最大4質問です。'}, status_code=422)
         try:
+            remote = FDS.from_request(request)
+            if remote and request.url.path in ('/testjeff/status','/testjeff/model','/testjeff/resources','/v1/systemone','/testjeff/fds-check'):
+                server.authenticate(request.headers.get('authorization'))
+                selected = request.headers.get('x-testjeff-model','qwen-2b')
+                if request.url.path == '/testjeff/resources':
+                    return JSONResponse({'device':'remote','backend':'fds'})
+                if request.url.path == '/testjeff/model':
+                    selected = (await request.json()).get('model')
+                if request.url.path == '/v1/systemone':
+                    payload = await request.json()
+                    selected = next((key for key,value in API_IDS.items() if value == payload.get('model')),selected)
+                    result = await run_in_threadpool(remote.predict,payload,selected)
+                else:
+                    result = await run_in_threadpool(remote.status,selected)
+                return JSONResponse(result)
             return await call_next(request)
+        except HTTPException as error:
+            return JSONResponse({'detail':error.detail},status_code=error.status_code)
         except torch.OutOfMemoryError:
             if device == 'cuda':
                 torch.cuda.empty_cache()

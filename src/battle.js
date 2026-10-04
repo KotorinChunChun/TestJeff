@@ -1,5 +1,5 @@
 'use strict';
-const $=id=>document.getElementById(id), models=BattleCore.models, storageKey='testjeff-battle-v2';
+const $=id=>document.getElementById(id), models=BattleCore.models, storageKey='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
 const rows=[];
 let pendingKnowledge=null,knowledgeSaved=false;
@@ -11,7 +11,7 @@ try{
 }catch{}
 function error(text=''){$('error').textContent=text;}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(stats));}catch{error('累積値を保存できませんでした。画面を閉じるまでは保持します。');}}
-function setBusy(value){busy=value;for(const id of ['target','random','start','reset','key'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
+function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
 function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
 function resetResults(){run=null;clearReviews();render();}
 function createRows(values){
@@ -104,7 +104,7 @@ async function predict(model,request){
   const start=performance.now(),data=await api('/v1/systemone',{...request,model:model.api}),ms=performance.now()-start,p=data.answers?.判定?.noul;
   if(data.model!==model.api)throw Error('別の画面でモデルが変更されました。対戦をやり直してください。');
   if(typeof p!=='number'||!Number.isFinite(p)||p<0||p>1)throw Error('判定の応答が不正です。');
-  return {probability:p,ms};
+  return {probability:p,ms,execution:data.execution||null};
 }
 async function battle(){
   if(busy)return;error();let requests;
