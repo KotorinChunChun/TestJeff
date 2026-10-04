@@ -15,7 +15,7 @@ import urllib.request
 from feedback import Feedback, FeedbackStore
 from resources import ResourceMeter
 from luna import LunaInput, classify
-from photos import PhotoInput, prepare_image, questions as photo_questions
+from photos import PhotoInput, PhotoPrompts, PhotoSamples, prepare_image, questions as photo_questions
 from knowledge import Evaluation, KnowledgeStore
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -129,10 +129,27 @@ def serve(name: str, port: int, device: str) -> None:
     def download_knowledge():
         return JSONResponse(knowledge_store.export(), headers={'Content-Disposition':'attachment; filename="quality-knowledge.json"'})
 
+    photo_samples = PhotoSamples(ROOT / 'dev/image', ROOT / 'dev/feedback/photo-samples')
+
+    @server.app.get('/testjeff/photo-samples', dependencies=[Depends(server.authenticate)])
+    def list_photo_samples():
+        return {'prompts':PhotoPrompts().model_dump(), 'samples':photo_samples.listing()}
+
+    @server.app.get('/testjeff/photo-samples/{sample_id}', dependencies=[Depends(server.authenticate)])
+    def read_photo_sample(sample_id: str):
+        try:
+            filename, digest, image = photo_samples.get(sample_id)
+            return {'name':filename, 'image':image}
+        except ValueError as error:
+            raise HTTPException(404, str(error)) from error
+
     @server.app.post('/testjeff/photos', dependencies=[Depends(server.authenticate)])
     def photos(body: PhotoInput):
         try:
-            picture, source_size, input_size = prepare_image(body.image)
+            source = body.image
+            if body.sample_id:
+                filename, digest, source = photo_samples.get(body.sample_id)
+            picture, source_size, input_size = prepare_image(source)
         except ValueError as error:
             raise HTTPException(422, str(error)) from error
         if not server.service.lock.acquire(blocking=False):
@@ -141,9 +158,18 @@ def serve(name: str, port: int, device: str) -> None:
             if name != body.model or server.service.model is None:
                 raise HTTPException(409, 'モデルが変更されました。もう一度判定してください。')
             request = server.EvaluationRequest(model=server.service.name, state='添付した1枚の画像を判定してください。',
-                                               images=[picture], questions=photo_questions())
+                                               images=[picture], questions=photo_questions(body.prompts))
+            started = time.perf_counter()
             result = server.predict(server.service.model, request)
-            return {**result, 'source_size':source_size, 'input_size':input_size}
+            result = {**result, 'source_size':source_size, 'input_size':input_size,
+                      'coverage_percent':int(result['answers']['看板面積']['choice']),
+                      'response_ms':(time.perf_counter() - started) * 1000,
+                      'prompts':body.prompts.model_dump(), 'revision':MODELS[body.model]['revision'],
+                      'created_at':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+            if body.sample_id:
+                result.update(sample_id=body.sample_id, filename=filename, sha256=digest)
+                photo_samples.save(body.sample_id, result)
+            return result
         finally:
             server.service.lock.release()
 
