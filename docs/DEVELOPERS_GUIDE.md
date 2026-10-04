@@ -25,3 +25,15 @@ v0.3.0以降のブラウザーテストは計50件（0.8Bの手動10件＋ラン
 `POST /testjeff/model` は `{"model":"qwen-2b"}` 等を受け取り、推論と同じservice.lockで排他する。旧モデルを解放・GC・CUDAキャッシュ解放後に次モデルをロードする。上流lifespanはモデルをローカル変数に保持するため、本件のlifespanはserviceだけにモデルを所有させる。同時切り替えは409、不正モデルは422、ロード失敗は503。APIキーの認証は既存と共通。
 
 `GET /testjeff/status` のready/selectedで利用可能状態を確認する。評価リクエストでは実モデル名を固定し、他画面の切り替えによる異なるモデルの結果が同一集計に混ざることを防ぐ。Aはabstract-nouns.jsonの46分類。ブラウザー集計はtestjeff-nouns-stats-v1キーにモデル別のruns/count/totalMs/probabilitySumを保存し、1回10件成功した場合のみ更新する。
+
+## 可変件数と問い合わせ速度比較（v0.18.0）
+
+対戦と `/query-comparison` は1・10・30・100件を選択する。API・保存スキーマは1〜100件を受け、候補・完了結果・ユーザー評価の件数を一致させる。`/testjeff/battle-batch` は最大8件の質問へ分割し、ローカルの省メモリ逐次推論を維持する。Lunaは1回のCLI呼び出しで指定数の真偽値を要求し、出力数を別途検証する。
+
+モデル別の `run.query_totals` は `total_ms`（最初の本問い合わせ開始〜最終応答）、`response_sum_ms`（成功API時間の合計）、`count`、`complete` を持つ。読み込み・予備判定・保存は合計から除外する。比較ページは測定中に全結果表を描画し直さず、進捗だけ更新する。
+
+比較は既存の `battle_runs` テーブルへ2記録を保存する。`run.parameters` の `comparison_id`、`comparison_mode`、`method_order`、`candidate_count` で関連付け、`GET /testjeff/battle-runs?comparison_only=true` で一覧を抽出する。通常の対戦履歴にも表示される。単件保存は冪等であり、片方の保存失敗では未保存側だけ再試行する。結果JSONをダウンロードするときに画面変更後の設定を混ぜない。
+
+対戦と品質評価のPOST上限は8MiB。100件の完全な再現情報を保持するための拡張であり、画像や秘密値は追加しない。ブラウザーの非Luna一括期限は `15000 + ceil(件数 / 8) * 120000` ms、Lunaと単件は135000ms。期限は `TestJeffConnection.timeoutMs(path, payload)` で共通化しJSONにも保存する。
+
+単体検証は `.venv/Scripts/python.exe -m unittest discover -s tests -p '*_test.py'` と `npm test`。模擬APIのブラウザー検証は `node tests/battle-count-browser.cjs` と `node tests/query-comparison-browser.cjs`。実APIの検証用に `tests/query-count-live-browser.cjs` と `tests/query-comparison-live-browser.cjs` を用意した。後者2本は専用DBを設定したポート8766のCPU試験サーバーが必要で、本番DBでは実行しない。比較試験のFDSは8767のQwen 2Bを使い、Lunaの実問い合わせは行わない。

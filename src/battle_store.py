@@ -12,14 +12,14 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, model_validator
 
 from knowledge import MODELS, Prediction, Snapshot
 
-MAX_RECORD_BYTES = 512 * 1024
+MAX_RECORD_BYTES = 8 * 1024 * 1024
 
 
 class BattleSnapshot(BaseModel):
     model_config = ConfigDict(extra='allow', allow_inf_nan=False)
     id: UUID
     target: str = Field(min_length=1, max_length=80)
-    candidates: list[str] = Field(min_length=10, max_length=10)
+    candidates: list[str] = Field(min_length=1, max_length=100)
     results: dict[str, list[Prediction]]
     skipped: dict[str, str] = Field(default_factory=dict)
     selected_models: list[str] = Field(default_factory=lambda:list(MODELS), min_length=1, max_length=4)
@@ -41,8 +41,26 @@ class BattleSnapshot(BaseModel):
         if any(not reason.strip() or len(reason) > 4000 for reason in self.skipped.values()):
             raise ValueError('計測不能の理由が不正です。')
         for model, items in self.results.items():
-            if len(items) > 10 or any((item.verdict is None if model == 'gpt-5.6-luna' else item.probability is None) for item in items):
-                raise ValueError('モデルごとに最大10件の適切な判定が必要です。')
+            if len(items) > len(self.candidates) or any((item.verdict is None if model == 'gpt-5.6-luna' else item.probability is None) for item in items):
+                raise ValueError('モデルごとの判定件数は候補数を超えず、適切な判定を含む必要があります。')
+        parameters = (self.model_extra or {}).get('parameters')
+        if isinstance(parameters, dict):
+            candidate_count = parameters.get('candidate_count')
+            if candidate_count is not None and (type(candidate_count) is not int or candidate_count != len(self.candidates)):
+                raise ValueError('記録した問い合わせ件数が候補数と一致しません。')
+            if 'comparison_id' in parameters:
+                try:
+                    UUID(parameters['comparison_id'])
+                except (ValueError, TypeError, AttributeError) as error:
+                    raise ValueError('比較IDをUUIDで指定してください。') from error
+                if parameters.get('comparison_mode') not in ('single', 'batch'):
+                    raise ValueError('比較方式はsingleまたはbatchで指定してください。')
+                if (parameters['comparison_mode'] == 'batch') != self.batch:
+                    raise ValueError('比較方式と一括問い合わせ設定が一致しません。')
+                if parameters.get('method_order') not in (['single','batch'], ['batch','single']):
+                    raise ValueError('比較順序にはsingleとbatchを1回ずつ指定してください。')
+                if candidate_count is None:
+                    raise ValueError('比較には問い合わせ件数の記録が必要です。')
         if self.status == '完了':
             Snapshot.model_validate(self.model_dump())
         return self
@@ -93,7 +111,7 @@ class BattleRecord(BaseModel):
         except (ValueError, TypeError, OverflowError) as error:
             raise ValueError('保存データには有限値のJSONだけを指定してください。') from error
         if len(raw.encode('utf-8')) > MAX_RECORD_BYTES:
-            raise ValueError('対戦記録は512KiB以内にしてください。')
+            raise ValueError('対戦記録は8MiB以内にしてください。')
         return self
 
 
@@ -152,17 +170,20 @@ class BattleStore:
                                      (record_id,)).fetchone()
         return self.record(row) if row else None
 
-    def history(self, before: int = 0, limit: int = 50):
+    def history(self, before: int = 0, limit: int = 50, comparison_only: bool = False):
         if before < 0 or not 1 <= limit <= 100:
             raise ValueError('履歴の取得範囲が不正です。')
         with self.connect() as connection:
-            rows = connection.execute('SELECT id,run_id,recorded_at,payload FROM battle_runs WHERE (?=0 OR id<?) ORDER BY id DESC LIMIT ?',
-                                      (before, before, limit + 1)).fetchall()
+            rows = connection.execute('''SELECT id,run_id,recorded_at,payload FROM battle_runs
+                WHERE (?=0 OR id<?) AND (?=0 OR json_type(payload,'$.run.parameters.comparison_id')='text')
+                ORDER BY id DESC LIMIT ?''', (before, before, comparison_only, limit + 1)).fetchall()
         summaries = []
         for row in rows[:limit]:
             record = self.record(row)
             run = record['run']
+            parameters = run.get('parameters') if isinstance(run.get('parameters'), dict) else {}
             summaries.append({key:record[key] for key in ('id','run_id','recorded_at','connection')} |
                              {'target':run['target'], 'status':run['status'],
-                              'selected_models':run.get('selected_models', list(MODELS)), 'batch':run.get('batch', False)})
+                              'selected_models':run.get('selected_models', list(MODELS)), 'batch':run.get('batch', False),
+                              'comparison_id':parameters.get('comparison_id'), 'comparison_mode':parameters.get('comparison_mode')})
         return {'rows':summaries, 'next_before':summaries[-1]['id'] if len(rows) > limit else None}

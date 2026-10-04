@@ -1,4 +1,5 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
+const base=process.env.TESTJEFF_URL||'http://127.0.0.1:8765';
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
  for(const mode of ['local','fds']){
   const context=await browser.newContext({viewport:{width:1400,height:1000}});
@@ -12,8 +13,8 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   await page.route('**/testjeff/resources',r=>r.fulfill({json:{device:'cpu'}}));
   // 開発中の新しい部品も、本サーバーのPython再起動前から配置試験できる。
   await page.route('**/assets/noun-combo.js',r=>r.fulfill({body:fs.readFileSync('src/noun-combo.js','utf8'),contentType:'text/javascript'}));
-  for(const path of ['/','/nouns','/battle','/photos','/classification']){
-   await page.goto('http://127.0.0.1:8765'+path);
+  for(const path of ['/','/nouns','/battle','/query-comparison','/photos','/classification']){
+   await page.goto(base+path);
    await page.waitForFunction(()=>!document.getElementById('backend').disabled);
    for(const width of [1400,1078,390]){
     await page.setViewportSize({width,height:1000});
@@ -26,9 +27,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
     assert(!layout.overflow,JSON.stringify({mode,path,width,layout}));
    }
    await page.setViewportSize({width:1400,height:1000});
-   if(path==='/battle')await page.screenshot({path:`dev/testing/output/v0170-header-${mode}.png`,fullPage:true});
+   if(path==='/battle'||path==='/query-comparison')await page.screenshot({path:`dev/testing/output/v0180-header-${path.slice(1)}-${mode}.png`,fullPage:true});
   }
   assert.deepEqual(errors,[]);await context.close();
  }
- console.log('全5ページで処理先設定がタイトル右端・同一行。ローカル/FDS、1400/1078/390pxを確認');
+ console.log('全6ページで処理先設定がタイトル右端・同一行。ローカル/FDS、1400/1078/390pxを確認');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

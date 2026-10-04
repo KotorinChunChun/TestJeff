@@ -10,6 +10,22 @@ from knowledge import Evaluation, KnowledgeStore, MODELS
 
 
 class KnowledgeTest(unittest.TestCase):
+    def test_variable_counts_require_matching_results_and_annotations(self):
+        for count in (1,10,30,100):
+            run = {'id':str(uuid4()), 'target':'動物', 'candidates':['犬'] * count, 'status':'完了',
+                   'selected_models':[MODELS[0]], 'results':{MODELS[0]:[{'ms':1,'probability':.9} for _ in range(count)]}}
+            annotations = [{'expected':'です','comment':''} for _ in range(count)]
+            event = Evaluation(event_id=uuid4(),run=run,annotations=annotations)
+            self.assertEqual(len(event.annotations),count)
+            for wrong in (count-1,count+1):
+                with self.subTest(count=count,annotations=wrong), self.assertRaises(ValidationError):
+                    Evaluation(event_id=uuid4(),run=run,annotations=[annotations[0]] * wrong)
+                with self.subTest(count=count,results=wrong), self.assertRaises(ValidationError):
+                    Evaluation(event_id=uuid4(),run={**run,'results':{MODELS[0]:[{'ms':1,'probability':.9}]*wrong}},annotations=annotations)
+        for count in (0,101):
+            with self.assertRaises(ValidationError):
+                Evaluation(event_id=uuid4(),run={**run,'candidates':['犬'] * count},annotations=annotations)
+
     def test_records(self):
         root = Path(__file__).resolve().parents[1] / 'dev/testing/output'
         root.mkdir(parents=True, exist_ok=True)

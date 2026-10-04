@@ -16,3 +16,19 @@ console.log('比較集計・中央値・一致数・最速件数・不完全回�
 
 const chosen={selected_models:['qwen-0.8b'],results:partial.results};assert(core.complete(chosen));assert.equal(core.accumulate(null,chosen).models['qwen-0.8b'].count,10);
 assert(!core.complete({...chosen,selected_models:[]}));assert(!core.complete({...chosen,selected_models:['unknown']}));assert(!core.complete({...chosen,selected_models:['qwen-0.8b','qwen-0.8b']}));
+
+for(const count of [1,30,100]){
+ const variable={candidates:Array.from({length:count},(_,i)=>`候補${i+1}`),selected_models:['qwen-0.8b','qwen-2b'],results:{
+  'qwen-0.8b':Array.from({length:count},()=>({ms:3,probability:.8})),
+  'qwen-2b':Array.from({length:count},(_,i)=>({ms:6,probability:i%2?.2:.8}))
+ }};
+ assert(core.complete(variable));assert.equal(core.candidateCount(variable),count);assert.equal(core.compare(variable).agreement,Math.ceil(count/2));assert.equal(core.compare(variable).wins['qwen-0.8b'],count);
+ const accumulated=core.accumulate(core.accumulate(null,variable),variable);assert.equal(accumulated.comparison_items,count*2);assert.equal(accumulated.models['qwen-2b'].count,count*2);
+ const one={...variable,selected_models:['qwen-0.8b'],results:{'qwen-0.8b':variable.results['qwen-0.8b']}};assert.equal(core.accumulate(null,one).comparison_items,0);
+ variable.results['qwen-2b'].pop();assert(!core.complete(variable));
+}
+assert.equal(core.candidateCount(run),10);assert(!core.complete({...chosen,candidates:[]}));assert(!core.complete({...chosen,candidates:Array(101).fill('物')}));
+const legacy={runs:2,comparisons:2,agreement:18,models:{'qwen-0.8b':{count:20,totalMs:200,yes:20,probabilitySum:18,wins:20}}};
+const single={candidates:['物'],selected_models:['qwen-0.8b','qwen-2b'],results:{'qwen-0.8b':[{ms:1,probability:.8}],'qwen-2b':[{ms:2,probability:.8}]}};
+assert.equal(core.accumulate(legacy,single).comparison_items,21);assert.equal(core.accumulate(legacy,single).agreement,19);
+console.log('1/30/100件の一致数・最速件数・集計分母・旧10件累積からの移行を確認しました。');

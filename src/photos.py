@@ -126,7 +126,7 @@ class BattleBatchInput(BaseModel):
     model_config = ConfigDict(extra='forbid')
     model: Literal['qwen-0.8b','qwen-2b','gemma-e2b','gpt-5.6-luna']
     target: str = Field(min_length=1,max_length=80)
-    candidates: list[str] = Field(min_length=10,max_length=10)
+    candidates: list[str] = Field(min_length=1,max_length=100)
 
     @model_validator(mode='after')
     def names(self):

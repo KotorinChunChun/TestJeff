@@ -20,7 +20,7 @@ class Snapshot(BaseModel):
     model_config = ConfigDict(extra='allow')
     id: UUID
     target: str = Field(min_length=1, max_length=80)
-    candidates: list[str] = Field(min_length=10, max_length=10)
+    candidates: list[str] = Field(min_length=1, max_length=100)
     results: dict[str, list[Prediction]]
     status: Literal['完了']
     skipped: dict[str,str] = Field(default_factory=dict)
@@ -35,8 +35,8 @@ class Snapshot(BaseModel):
         if not self.results or set(self.results) & set(self.skipped) or set(self.results) | set(self.skipped) != set(self.selected_models):
             raise ValueError('選択モデルの結果または計測不能の理由が必要です。')
         for model, items in self.results.items():
-            if len(items) != 10 or any((item.verdict is None if model == 'gpt-5.6-luna' else item.probability is None) for item in items):
-                raise ValueError('計測したモデルごとに10件の判定が必要です。')
+            if len(items) != len(self.candidates) or any((item.verdict is None if model == 'gpt-5.6-luna' else item.probability is None) for item in items):
+                raise ValueError('計測したモデルごとに候補数と同じ件数の判定が必要です。')
         return self
 
 
@@ -50,10 +50,12 @@ class Evaluation(BaseModel):
     model_config = ConfigDict(extra='forbid')
     event_id: UUID
     run: Snapshot
-    annotations: list[Annotation] = Field(min_length=10, max_length=10)
+    annotations: list[Annotation] = Field(min_length=1, max_length=100)
 
     @model_validator(mode='after')
     def reviewed(self):
+        if len(self.annotations) != len(self.run.candidates):
+            raise ValueError('ユーザー評価の件数を候補数と一致させてください。')
         if not any(a.expected != '未評価' or a.comment for a in self.annotations):
             raise ValueError('ユーザー判定またはコメントを入力してください。')
         return self

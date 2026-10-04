@@ -15,7 +15,7 @@ await page.goto('http://127.0.0.1:8767/battle');await page.locator('#start:not([
 await page.locator('#target').fill('持ち歩く物');await page.locator('input[aria-label="候補1"]').fill('買い物袋');
 const inputs=await page.locator('#rows input').evaluateAll(ns=>ns.map(n=>n.value));
 await page.locator('#batch-mode').click();assert.equal(await page.locator('#batch-mode').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#single-mode').getAttribute('aria-pressed'),'false');await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);
-assert.equal(batch.length,4);assert.equal(single.length,3);assert(batch.every(b=>b.candidates.length===10));assert.match(await page.locator('#summary').innerText(),/10件全体/);assert.match(await page.locator('#rows').innerText(),/平均換算/);
+assert.equal(batch.length,4);assert.equal(single.length,3);assert(batch.every(b=>b.candidates.length===10));assert.match(await page.locator('#summary').innerText(),/合計時間/);assert.match(await page.locator('#rows').innerText(),/平均換算/);
 await page.locator('#single-mode').click();assert.match(await page.locator('#cumulative').innerText(),/累積 0回/);assert.equal(await page.locator('#single-mode').getAttribute('aria-pressed'),'true');
 await page.locator('#start').click();await page.waitForFunction(()=>document.getElementById('progress').textContent==='40 / 40件完了'&&!document.getElementById('start').disabled);assert.equal(single.length,36);assert.equal(batch.length,4);
 await page.locator('#batch-mode').click();assert.match(await page.locator('#cumulative').innerText(),/累積 1回/);

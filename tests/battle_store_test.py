@@ -15,6 +15,7 @@ from pydantic import ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 from battle_store import BattleConflict, BattleRecord, BattleStore, MAX_RECORD_BYTES
+from knowledge import Evaluation, KnowledgeStore, MODELS
 import testjeff
 import local_device_test
 
@@ -118,10 +119,67 @@ class BattleStoreTest(unittest.TestCase):
         self.assertIsNone(page3['next_before'])
         self.assertEqual(self.store.history(before=1), {'rows':[],'next_before':None})
         self.assertIsNone(self.store.get(99))
-        self.assertEqual(set(page1['rows'][0]), {'id','run_id','recorded_at','target','status','selected_models','batch','connection'})
+        self.assertEqual(set(page1['rows'][0]), {'id','run_id','recorded_at','target','status','selected_models','batch','connection','comparison_id','comparison_mode'})
         for before, limit in ((-1,50),(0,0),(0,101)):
             with self.assertRaises(ValueError):
                 self.store.history(before,limit)
+
+    def test_variable_counts_and_rich_hundred_record(self):
+        for count in (1,30,100):
+            payload=sample_record()
+            payload['run']['candidates']=['犬']*count
+            payload['run']['results']={'qwen-2b':[{'ms':1,'probability':.9} for _ in range(count)]}
+            payload['run']['parameters']['candidate_count']=count
+            saved=self.store.save(BattleRecord.model_validate(payload))
+            self.assertEqual(len(self.store.get(saved['id'])['run']['results']['qwen-2b']),count)
+            for wrong in (count-1,count+1):
+                invalid=copy.deepcopy(payload)
+                invalid['run']['results']['qwen-2b']=[{'ms':1,'probability':.9}]*wrong
+                with self.assertRaises(ValidationError):
+                    BattleRecord.model_validate(invalid)
+            interrupted=copy.deepcopy(payload)
+            interrupted['run']['status']='中止'
+            interrupted['run']['results']['qwen-2b']=interrupted['run']['results']['qwen-2b'][:count-1]
+            BattleRecord.model_validate(interrupted)
+        payload['run']['selected_models']=list(MODELS)
+        payload['run']['columns']=list(MODELS)
+        payload['run']['id']=str(uuid4())
+        payload['run']['results']={model:[{'ms':1, **({'verdict':True} if model==MODELS[-1] else {'probability':.9}),
+                    'reproduction':{'request':{'state':'犬','details':'再現情報'*600}}} for _ in range(100)] for model in MODELS}
+        payload['run']['query_totals']={model:{'total_ms':120,'response_sum_ms':100,'count':100,'complete':True} for model in MODELS}
+        size=len(json.dumps(payload,ensure_ascii=False).encode('utf-8'))
+        self.assertGreater(size,512*1024)
+        self.assertLess(size,MAX_RECORD_BYTES)
+        saved=self.store.save(BattleRecord.model_validate(payload))
+        self.assertEqual(BattleStore(self.store.path).get(saved['id'])['run'],payload['run'])
+        evaluation=Evaluation(event_id=uuid4(),run=payload['run'],annotations=[{'expected':'です','comment':''}]*100)
+        knowledge=KnowledgeStore(self.store.path.with_name('knowledge.sqlite3'))
+        knowledge.save_evaluation(evaluation)
+        self.assertEqual(knowledge.export()['latest'][0]['run']['query_totals'],payload['run']['query_totals'])
+
+    def test_comparison_filter_and_metadata_validation(self):
+        self.store.save(BattleRecord.model_validate(sample_record()))
+        comparison_id=str(uuid4())
+        for mode in ('single','batch'):
+            payload=sample_record()
+            payload['run']['batch']=mode=='batch'
+            payload['run']['parameters'].update(comparison_id=comparison_id,comparison_mode=mode,
+                                                 method_order=['single','batch'],candidate_count=10)
+            self.store.save(BattleRecord.model_validate(payload))
+            self.store.save(BattleRecord.model_validate(sample_record()))
+        first=self.store.history(comparison_only=True,limit=1)
+        self.assertEqual(first['rows'][0]['comparison_id'],comparison_id)
+        self.assertEqual(first['rows'][0]['comparison_mode'],'batch')
+        second=self.store.history(comparison_only=True,before=first['next_before'],limit=1)
+        self.assertEqual(second['rows'][0]['comparison_mode'],'single')
+        self.assertIsNone(second['next_before'])
+        self.assertEqual(len(self.store.history()['rows']),5)
+        for changed in ({'comparison_id':'invalid'}, {'comparison_mode':'unknown'},
+                        {'candidate_count':30}, {'method_order':['batch','batch']}):
+            invalid=copy.deepcopy(payload)
+            invalid['run']['parameters'].update(changed)
+            with self.assertRaises(ValidationError):
+                BattleRecord.model_validate(invalid)
 
     def test_malformed_snapshots_are_rejected(self):
         invalid = [
@@ -193,6 +251,25 @@ class BattleAPI(unittest.TestCase):
         changed['run']['target'] = '時間'
         self.assertEqual(self.client.post('/testjeff/battle-runs',json=changed,headers=self.headers).status_code, 409)
         self.assertEqual(self.client.get('/testjeff/battle-runs/1',headers=self.headers).json(), saved)
+
+    def test_api_comparison_filter_and_larger_saved_payload(self):
+        self.client.post('/testjeff/battle-runs',json=sample_record(),headers=self.headers)
+        payload=sample_record()
+        payload['run']['parameters'].update(comparison_id=str(uuid4()),comparison_mode='single',
+                                             method_order=['batch','single'],candidate_count=10,
+                                             metadata='保存した実行条件'*40000)
+        self.assertGreater(len(json.dumps(payload,ensure_ascii=False).encode('utf-8')),512*1024)
+        response=self.client.post('/testjeff/battle-runs',json=payload,headers=self.headers)
+        self.assertEqual(response.status_code,200)
+        listing=self.client.get('/testjeff/battle-runs?comparison_only=true',headers=self.headers).json()
+        self.assertEqual(len(listing['rows']),1)
+        self.assertEqual(listing['rows'][0]['run_id'],payload['run']['id'])
+        self.assertEqual(listing['rows'][0]['comparison_mode'],'single')
+        self.assertEqual(len(self.client.get('/testjeff/battle-runs',headers=self.headers).json()['rows']),2)
+        annotations=[{'expected':'です','comment':''}]*10
+        testjeff.KnowledgeStore.return_value.save_evaluation.return_value={'saved':True}
+        self.assertEqual(self.client.post('/testjeff/knowledge',json={'event_id':str(uuid4()),'run':payload['run'],
+                         'annotations':annotations},headers=self.headers).status_code,200)
 
     def test_api_auth_invalid_and_oversized(self):
         self.assertEqual(self.client.post('/testjeff/battle-runs',json=sample_record()).status_code, 401)

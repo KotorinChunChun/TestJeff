@@ -71,7 +71,29 @@ class LunaTest(unittest.TestCase):
             self.assertEqual(result['reproduction']['request']['prompt'],process.communicate.call_args.args[0])
             self.assertIn('verdicts',result['reproduction']['request']['output_schema']['properties'])
         with self.assertRaises(ValidationError):
-            luna.BatchVerdict(verdicts=[True]*9)
+            luna.BatchVerdict(verdicts=[True]*101)
+
+    def test_variable_batch_counts_and_exact_response_length(self):
+        def response(values):
+            return ('\n'.join(json.dumps(event) for event in [
+                {'type':'item.completed','item':{'type':'agent_message','text':json.dumps({'verdicts':values})}},
+                {'type':'turn.completed','usage':{}}]), '')
+        process=Mock(returncode=0)
+        with patch('luna.executable',return_value='codex.exe'), patch('luna.subprocess.Popen',return_value=process):
+            for count in (1,10,30,100):
+                body=luna.LunaBatchInput(target='動物',candidates=['犬']*count)
+                process.communicate.return_value=response([True]*count)
+                result=luna.classify(body)
+                self.assertEqual(len(result['verdicts']),count)
+                self.assertIn(f'入力順に{count}個',result['reproduction']['request']['prompt'])
+                for returned in (count-1,count+1):
+                    process.communicate.return_value=response([True]*returned)
+                    with self.subTest(requested=count,returned=returned), self.assertRaises((ValidationError,ValueError)):
+                        luna.classify(body)
+                    self.assertFalse(luna.LOCK.locked())
+        for candidates in ([], ['犬']*101, [' '], ['あ'*81]):
+            with self.assertRaises(ValidationError):
+                luna.LunaBatchInput(target='動物',candidates=candidates)
 
     def test_timeout(self):
         process = Mock(pid=123)

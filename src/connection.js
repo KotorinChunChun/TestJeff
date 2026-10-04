@@ -7,6 +7,14 @@ let selected='qwen-2b',active=0,checking=false,pending=false;
 const originalFetch=window.fetch.bind(window);
 window.TestJeffConnection={config,key:config.mode==='fds'?`fds:${config.host}:${config.port}:${config.device}`:config.local_device==='cpu'?'local:cpu':'local'};
 const inferencePaths=new Set(['/v1/systemone','/testjeff/photos','/testjeff/model','/testjeff/luna','/testjeff/battle-batch']);
+function timeoutMs(path,payload){
+ if(path==='/testjeff/battle-batch'&&payload?.model!=='gpt-5.6-luna'){
+  const count=payload?.candidates?.length;
+  if(Number.isInteger(count)&&count>=1&&count<=100)return 15000+Math.ceil(count/8)*120000;
+ }
+ return inferencePaths.has(path)?135000:15000;
+}
+window.TestJeffConnection.timeoutMs=timeoutMs;
 function lock(){const form=document.getElementById('connection-form');if(form)for(const node of form.querySelectorAll('input,select'))node.disabled=active>0||!!window.TestJeffBusy||checking;}
 function headersFor(value){return {'X-TestJeff-Backend':'fds','X-TestJeff-Host':value.host,'X-TestJeff-Port':String(value.port),'X-TestJeff-Device':value.device,'X-TestJeff-Model':selected};}
 window.fetch=async(input,options={})=>{
@@ -22,7 +30,8 @@ window.fetch=async(input,options={})=>{
  }
  if(tracked){active++;lock();}
  try{
-  const response=await originalFetch(input,{...options,headers,signal:options.signal||AbortSignal.timeout(tracked?135000:15000)});
+  let payload;try{if(typeof options.body==='string')payload=JSON.parse(options.body);}catch{}
+  const response=await originalFetch(input,{...options,headers,signal:options.signal||AbortSignal.timeout(timeoutMs(url.pathname,payload))});
   if(response.ok&&['/testjeff/status','/testjeff/model'].includes(url.pathname)&&config.mode==='fds'){const data=await response.clone().json();if(data.capabilities){window.TestJeffConnection.capabilities=data;window.dispatchEvent(new Event('fds-capabilities'));}}
   if(response.ok&&url.pathname==='/testjeff/model')selected=(await response.clone().json()).selected;
   return response;
