@@ -18,18 +18,42 @@ const base=process.env.TESTJEFF_URL||'http://127.0.0.1:8765';
    await page.waitForFunction(()=>!document.getElementById('backend').disabled);
    for(const width of [1400,1078,390]){
     await page.setViewportSize({width,height:1000});
-    const layout=await page.locator('.testjeff-title-row').evaluate(row=>{
-     const title=row.querySelector('h1,.brand').getBoundingClientRect(),form=row.querySelector('form').getBoundingClientRect();
-     return {title:{x:title.x,y:title.y,height:title.height},form:{x:form.x,y:form.y,height:form.height},parent:row.parentElement.tagName,overflow:document.documentElement.scrollWidth>innerWidth+1};
+    const row=page.locator('.testjeff-title-row');
+    const layout=await row.evaluate(row=>{
+     row.scrollLeft=0;
+     const rect=node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,center:r.top+r.height/2,width:r.width,height:r.height};};
+     const title=row.querySelector('h1,.brand'),form=row.querySelector('form'),nav=row.querySelector('nav');
+     const labels=[...form.querySelectorAll('label')].filter(node=>!node.hidden).map(node=>{
+      const range=document.createRange();range.selectNodeContents(node.firstChild);
+      return {box:rect(node),control:rect(node.querySelector('input,select')),nowrap:getComputedStyle(node).whiteSpace,textLines:range.getClientRects().length};
+     });
+     return {title:rect(title),form:rect(form),nav:nav&&rect(nav),navigation:nav?[...nav.children].map(rect):[],firstLink:nav?.querySelector('a')?.getAttribute('href'),labels,parent:row.parentElement.tagName,children:[...row.children].map(node=>node.tagName),blocks:[...row.children].map(rect),overflow:document.documentElement.scrollWidth>innerWidth+1,scrollable:row.scrollWidth>row.clientWidth+1,overflowX:getComputedStyle(row).overflowX};
     });
-    assert.equal(layout.parent,'HEADER');assert(layout.form.x>layout.title.x);
-    assert(Math.abs(layout.form.y+layout.form.height/2-layout.title.y-layout.title.height/2)<2,JSON.stringify({mode,path,width,layout}));
-    assert(!layout.overflow,JSON.stringify({mode,path,width,layout}));
+    const detail=JSON.stringify({mode,path,width,layout});
+    assert.equal(layout.parent,'HEADER',detail);assert(layout.nav,detail);assert.deepEqual(layout.children.slice(1,3),['FORM','NAV'],detail);if(path!=='/')assert.equal(layout.firstLink,'/',detail);
+    assert(layout.title.right<=layout.form.left+1,detail);assert(layout.form.right<=layout.navigation[0].left+1,detail);
+    for(const box of [...layout.blocks,...layout.navigation,...layout.labels.map(label=>label.box)])assert(Math.abs(box.center-layout.title.center)<2,detail);
+    for(const label of layout.labels){assert.equal(label.nowrap,'nowrap',detail);assert.equal(label.textLines,1,detail);assert(Math.abs(label.box.center-label.control.center)<2,detail);}
+    for(const boxes of [layout.blocks,layout.navigation,layout.labels.map(label=>label.box)])for(let i=1;i<boxes.length;i++)assert(boxes[i-1].right<=boxes[i].left+1,detail);
+    assert(!layout.overflow,detail);
+    if(width===390){assert(layout.scrollable,detail);assert(['auto','scroll'].includes(layout.overflowX),detail);}
+    const name=path==='/'?'home':path.slice(1),prefix=`dev/testing/output/header-nav-${name}-${mode}-${width}`;
+    await page.locator('.testjeff-page-header').screenshot({path:prefix+'.png'});
+    if(layout.scrollable){
+     const reached=await row.evaluate(row=>{
+      const rect=node=>node.getBoundingClientRect(),view=rect(row),items=[...row.querySelectorAll('form label:not([hidden]),nav>a,nav>button'),...[...row.children].slice(3)];
+      const results=items.map(node=>{row.scrollLeft=0;row.scrollLeft=rect(node).left-view.left;const box=rect(node);return {text:node.textContent,visible:box.left>=view.left-1&&box.right<=view.right+1};});
+      row.scrollLeft=row.scrollWidth;
+      const last=rect(row.lastElementChild.tagName==='NAV'?row.lastElementChild.lastElementChild:row.lastElementChild);
+      return {items:results,lastVisible:last.left>=view.left-1&&last.right<=view.right+1,scrollLeft:row.scrollLeft,overflow:document.documentElement.scrollWidth>innerWidth+1};
+     });
+     assert(reached.items.every(item=>item.visible),JSON.stringify({mode,path,width,reached}));assert(reached.lastVisible,JSON.stringify({mode,path,width,reached}));assert(reached.scrollLeft>0,detail);assert(!reached.overflow,detail);
+     if(width===390)await page.locator('.testjeff-page-header').screenshot({path:prefix+'-end.png'});
+     await row.evaluate(row=>row.scrollLeft=0);
+    }
    }
-   await page.setViewportSize({width:1400,height:1000});
-   if(path==='/battle'||path==='/query-comparison')await page.screenshot({path:`dev/testing/output/v0180-header-${path.slice(1)}-${mode}.png`,fullPage:true});
   }
   assert.deepEqual(errors,[]);await context.close();
  }
- console.log('全6ページで処理先設定がタイトル右端・同一行。ローカル/FDS、1400/1078/390pxを確認');
+ console.log('全6ページのタイトル・処理先設定・navが1行で非重複。local/FDS×1400/1078/390px、label改行なし・ヘッダー内スクロール・ページ横はみ出しなしを確認');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
