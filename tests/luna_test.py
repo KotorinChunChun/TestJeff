@@ -43,6 +43,20 @@ class LunaTest(unittest.TestCase):
             with self.assertRaises(BlockingIOError):
                 luna.classify(body)
 
+    def test_batch_cli(self):
+        process=Mock(returncode=0)
+        payload=json.dumps({'verdicts':[True,False]*5})
+        process.communicate.return_value=('\n'.join(json.dumps(x) for x in [
+            {'type':'item.completed','item':{'type':'agent_message','text':payload}},
+            {'type':'turn.completed','usage':{}}]),'')
+        with patch('luna.executable',return_value='codex.exe'), patch('luna.subprocess.Popen',return_value=process) as start:
+            result=luna.classify(luna.LunaBatchInput(target='動物',candidates=['犬']*10))
+            self.assertEqual(result['verdicts'],[True,False]*5)
+            self.assertEqual(start.call_count,1)
+            self.assertTrue(any('luna-batch-schema.json' in arg for arg in start.call_args.args[0]))
+        with self.assertRaises(ValidationError):
+            luna.BatchVerdict(verdicts=[True]*9)
+
     def test_timeout(self):
         process = Mock(pid=123)
         process.communicate.side_effect = [subprocess.TimeoutExpired('codex', 90), ('', '')]

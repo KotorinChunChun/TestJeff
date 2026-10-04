@@ -7,12 +7,12 @@
 </style></head><body><main>
 <header><h1>Jev互換ローカルモデル対戦</h1><nav><a href="/photos">画像判定</a><button id="export" disabled>結果をダウンロード</button><a href="/nouns">名詞判定</a></nav></header>
 <section class="card">
-<div class="controls"><span>これは</span><input id="target" list="targets" value="動物" maxlength="80" aria-label="質問する名詞"><span>ですか？</span><button id="random" class="primary" disabled>ランダム対戦</button><button id="start" disabled>対戦する</button><button id="stop" class="hidden">中止</button><span id="progress" role="status">準備中</span></div>
+<div class="controls"><span>これは</span><input id="target" list="targets" value="動物" maxlength="80" aria-label="質問する名詞"><span>ですか？</span><label><input id="batch-mode" type="checkbox">一括問い合わせ</label><button id="random" class="primary" disabled>ランダム対戦</button><button id="start" disabled>対戦する</button><button id="stop" class="hidden">中止</button><span id="progress" role="status">準備中</span></div>
 <datalist id="targets"></datalist><datalist id="nouns"></datalist>
 <div id="auth" class="hidden"><label>APIキー <input id="key" type="password" autocomplete="off"></label></div><p id="error" role="alert"></p>
 <div class="summary" id="summary"></div>
 <div class="toolbar"><span id="agreement">判定一致 —</span><span id="cumulative">累積 0回</span><label>並び順 <select id="sort"><option value="original">元の順</option><option value="name">名前順</option><option value="difference">判定が割れた順</option></select></label><button id="reset">集計をリセット</button></div>
 <div class="toolbar"><button id="save-knowledge" disabled>評価を保存</button><span id="knowledge-status" role="status"></span><button id="download-knowledge">評価ナレッジをダウンロード</button></div><div class="tablewrap"><table><thead><tr><th>候補</th><th>Qwen 0.8B</th><th>Qwen 2B</th><th>Gemma E2B</th><th>GPT-5.6-Luna</th><th>ユーザー評価</th></tr></thead><tbody id="rows"></tbody></table></div>
 </section>
-<details><summary>計測について</summary>同じ10件を1モデルずつ評価します。GPT-5.6-LunaはCodex CLIからクラウドへ送信し、ログイン中のCodex利用枠を使います。Lunaの時間はCLI起動・通信込みで、確率は算出しません。各モデルで予備判定を1回行い、速度集計から除外します。表示時間はAPI送信から応答受信までです。モデル切り替え時間は別表示です。全40件が成功した対戦のみ累積へ加算し、累積値はこのブラウザーに保存します。判定一致は正解率ではありません。中止は処理中の1件が終了してから行い、終了時は元のモデルへ戻します。</details>
+<details><summary>計測について</summary>同じ10件を1モデルずつ評価します。一括ONは10件まとめて結果を受け取ります（FDS内部は8件＋2件、ローカルJeff内部は省メモリの逐次推論）。Lunaは10件を1回のCLIで判断します。一括時の各行は全体時間÷10の平均換算で、個別の応答時間ではありません。単件と一括の累積は別です。GPT-5.6-LunaはCodex CLIからクラウドへ送信し、ログイン中のCodex利用枠を使います。Lunaの時間はCLI起動・通信込みで、確率は算出しません。各モデルで予備判定を1回行い、速度集計から除外します。表示時間はAPI送信から応答受信までです。モデル切り替え時間は別表示です。全40件が成功した対戦のみ累積へ加算し、累積値はこのブラウザーに保存します。判定一致は正解率ではありません。中止は処理中の1件が終了してから行い、終了時は元のモデルへ戻します。</details>
 </main><script src="/assets/nouns-core.js"></script><script src="/assets/battle-core.js"></script><script src="/assets/battle.js"></script></body></html>

@@ -119,3 +119,16 @@ class PhotoSamples:
         temporary = target.with_suffix('.tmp')
         temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
         temporary.replace(target)
+
+
+class BattleBatchInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    model: Literal['qwen-0.8b','qwen-2b','gemma-e2b','gpt-5.6-luna']
+    target: str = Field(min_length=1,max_length=80)
+    candidates: list[str] = Field(min_length=10,max_length=10)
+
+    @model_validator(mode='after')
+    def names(self):
+        if not self.target.strip() or any(not x.strip() or len(x)>80 for x in self.candidates):
+            raise ValueError('名詞を1〜80文字で指定してください。')
+        return self

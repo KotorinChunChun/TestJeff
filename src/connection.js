@@ -6,7 +6,7 @@ try{config={...config,...JSON.parse(localStorage.getItem(storage)||'{}')};}catch
 let selected='qwen-2b',active=0;
 const originalFetch=window.fetch.bind(window);
 window.TestJeffConnection={config,key:config.mode==='fds'?`fds:${config.host}:${config.port}:${config.device}`:'local'};
-const inferencePaths=new Set(['/v1/systemone','/testjeff/photos','/testjeff/model','/testjeff/luna']);
+const inferencePaths=new Set(['/v1/systemone','/testjeff/photos','/testjeff/model','/testjeff/luna','/testjeff/battle-batch']);
 function lock(){const form=document.getElementById('connection-form');if(form)for(const node of form.querySelectorAll('input,select,button'))node.disabled=active>0||!!window.TestJeffBusy;}
 window.fetch=async(input,options={})=>{
  const url=new URL(typeof input==='string'?input:input.url,location.href);

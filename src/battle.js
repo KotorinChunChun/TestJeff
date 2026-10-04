@@ -1,17 +1,21 @@
 'use strict';
-const $=id=>document.getElementById(id), models=BattleCore.models, storageKey='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
+const $=id=>document.getElementById(id), models=BattleCore.models, storageBase='testjeff-battle-v2'+(window.TestJeffConnection?.config.mode==='fds'?':'+window.TestJeffConnection.key:'');
 let words=[],targets=[],busy=false,stop=false,run=null,stats=null;
 const rows=[];
+$('batch-mode').checked=localStorage.getItem('testjeff-battle-batch')==='true';
+let storageKey=storageBase+($('batch-mode').checked?':batch':'');
 let pendingKnowledge=null,knowledgeSaved=false;
-try{
+function loadStats(){stats=null;try{
   const saved=JSON.parse(localStorage.getItem(storageKey)||'null');
   if(saved&&Number.isInteger(saved.runs)&&saved.runs>=0&&Number.isFinite(saved.agreement)&&saved.agreement>=0&&saved.agreement<=saved.runs*10&&models.every(m=>{
     const v=saved.models?.[m.id];return v&&v.count===saved.runs*10&&['totalMs','yes','probabilitySum','wins'].every(k=>Number.isFinite(v[k])&&v[k]>=0)&&v.yes<=v.count&&v.probabilitySum<=v.count&&v.wins<=v.count;
   }))stats=saved;
-}catch{}
+}catch{}}
+loadStats();
+$('batch-mode').onchange=()=>{localStorage.setItem('testjeff-battle-batch',String($('batch-mode').checked));storageKey=storageBase+($('batch-mode').checked?':batch':'');loadStats();resetResults();};
 function error(text=''){$('error').textContent=text;}
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(stats));}catch{error('累積値を保存できませんでした。画面を閉じるまでは保持します。');}}
-function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
+function setBusy(value){window.TestJeffBusy=value;window.dispatchEvent(new Event('testjeff-busy'));busy=value;for(const id of ['target','random','start','reset','key','batch-mode'])$(id).disabled=value;rows.forEach(r=>r.input.disabled=value);updateReviewControls();$('stop').classList.toggle('hidden',!value);$('stop').disabled=false;}
 function element(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;}
 function resetResults(){run=null;clearReviews();render();}
 function createRows(values){
@@ -27,7 +31,7 @@ function render(){
     const items=run?.results[m.id]||[],s=items.length?BattleCore.summarize(items):null,old=stats?.models[m.id];
     const card=element('section',undefined,'model-card');card.append(element('h2',m.name));
     const metrics=element('div',undefined,'metrics');
-    for(const [label,value] of [['平均応答',s?`${s.mean.toFixed(1)} ms`:'—'],['速度順位',finished?`${ordered.findIndex(x=>x.mean===s.mean)+1}位`:'—'],['中央値',s?`${s.median.toFixed(1)} ms`:'—'],['最速件数',comparison?`${comparison.wins[m.id]} / 10`:'—']]){
+    for(const [label,value] of [[run?.batch?'平均換算/件':'平均応答',s?`${s.mean.toFixed(1)} ms`:'—'],['速度順位',finished?`${ordered.findIndex(x=>x.mean===s.mean)+1}位`:'—'],[run?.batch?'10件全体':'中央値',s?`${(run?.batch?s.totalMs:s.median).toFixed(1)} ms`:'—'],['最速件数',comparison?`${comparison.wins[m.id]} / 10`:'—']]){
       const part=element('div',label);part.append(element('strong',value));metrics.append(part);
     }
     card.append(metrics,element('div',`判定 ${items.length}/10件・肯定 ${s?.yes||0}件・平均確率 ${m.cloud?'対象外':s?(s.probabilitySum/s.count*100).toFixed(1)+'%':'—'}`, 'sub'));
@@ -57,7 +61,7 @@ function render(){
         fill.style.width=`${item.probability*100}%`;track.append(fill);track.setAttribute('aria-hidden','true');
         probability.append(element('span',`${(item.probability*100).toFixed(1)}%`,'probability-value'),track);detail.append(probability);
       }
-      detail.append(element('span',`${item.ms.toFixed(1)} ms`,'response-time'));
+      detail.append(element('span',`${item.ms.toFixed(1)} ms${run.batch?"（平均換算）":""}`,'response-time'));
       box.append(detail);cell.append(box);
     });
   }
@@ -112,7 +116,7 @@ async function battle(){
   try{requests=candidates.map(word=>NounCore.makeRequest(target,word));}catch(e){error(e.message);return;}
   clearReviews();setBusy(true);stop=false;let original=null;
   const local=models.filter(m=>!m.cloud),offset=(stats?.runs||0)%local.length,order=[...local.slice(offset),...local.slice(0,offset),...models.filter(m=>m.cloud)];
-  run={id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
+  run={batch:$('batch-mode').checked,id:crypto.randomUUID(),at:new Date().toISOString(),target,candidates,order:order.map(m=>m.id),results:{},loads:{},memory:{},revisions:{},status:'実行中'};render();
   try{
     original=(await api('/testjeff/status')).selected;
     for(const m of order){
@@ -124,7 +128,12 @@ async function battle(){
       }
       if(stop)break;$('progress').textContent=`${m.name} 予備判定`;
       await predict(m,requests[0]);run.results[m.id]=[];
-      for(let i=0;i<10&&!stop;i++){
+      if(run.batch){
+        $('progress').textContent=`${m.name} 10件を一括判定中`;
+        const started=performance.now(),data=await api('/testjeff/battle-batch',{model:m.id,target:run.target,candidates:run.candidates}),elapsed=performance.now()-started;
+        if(!Array.isArray(data.results)||data.results.length!==10||!data.results.every(x=>m.cloud?typeof x.verdict==='boolean':Number.isFinite(x.probability)&&x.probability>=0&&x.probability<=1))throw Error('一括応答が不正です。');
+        run.results[m.id]=data.results.map(x=>({...x,ms:elapsed/10,batch_total_ms:elapsed,timing_basis:'batch_average'}));render();
+      }else for(let i=0;i<10&&!stop;i++){
         $('progress').textContent=`${m.name} ${i+1} / 10件`;
         run.results[m.id].push(await predict(m,requests[i]));render();
       }
